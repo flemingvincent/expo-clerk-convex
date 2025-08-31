@@ -93,7 +93,7 @@ export const MealPlanSection = () => {
 			(week) => week.id === selectedWeekId,
 		);
 		if (currentIndex < displayWeeks.length - 1) {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 			const nextWeek = displayWeeks[currentIndex + 1];
 			handleWeekPress(nextWeek.id);
 		}
@@ -131,7 +131,6 @@ export const MealPlanSection = () => {
 		0,
 	);
 
-	// Replace the StickyCalendarSection useMemo block with this:
 	const StickyCalendarSection = useMemo(() => {
 		const currentIndex = displayWeeks.findIndex(
 			(week) => week.id === selectedWeekId,
@@ -139,13 +138,100 @@ export const MealPlanSection = () => {
 		const hasPrevious = currentIndex > 0;
 		const hasNext = currentIndex < displayWeeks.length - 1;
 
+		const getStepStates = () => {
+			if (!selectedWeek)
+				return {
+					plan: "inactive",
+					shop: "inactive",
+					review: "inactive",
+				} as const;
+
+			if (selectedWeek.is_current_week) {
+				return {
+					plan: "complete",
+					shop: "active",
+					review: "inactive",
+				} as const;
+			} else if (selectedWeek.weekOffset === -1) {
+				return {
+					plan: "complete",
+					shop: "complete",
+					review: "active",
+				} as const;
+			} else if (selectedWeek.weekOffset >= 1) {
+				return {
+					plan: "active",
+					shop: "inactive",
+					review: "inactive",
+				} as const;
+			}
+
+			return {
+				plan: "inactive",
+				shop: "inactive",
+				review: "inactive",
+			} as const;
+		};
+
+		const stepStates = getStepStates();
+
+		const renderStep = (
+			stepName: string,
+			iconName: string,
+			state: "complete" | "active" | "inactive",
+		) => {
+			const isComplete = state === "complete";
+			const isActive = state === "active";
+
+			return (
+				<View className="items-center">
+					<View
+						style={{
+							width: isActive ? 32 : 28,
+							height: isActive ? 32 : 28,
+							borderRadius: isActive ? 8 : 7,
+							borderWidth: 2,
+							borderColor: isComplete || isActive ? "#25551b" : "#EBEBEB",
+							backgroundColor: isActive
+								? "#CCEA1F"
+								: isComplete
+									? "#25551b"
+									: "#FFFFFF",
+							alignItems: "center",
+							justifyContent: "center",
+						}}
+					>
+						{isComplete ? (
+							<Ionicons
+								name="checkmark-sharp"
+								size={isActive ? 16 : 14}
+								color="#FFFFFF"
+							/>
+						) : (
+							<Ionicons
+								name={iconName as any}
+								size={isActive ? 16 : 14}
+								color={isActive ? "#25551b" : "#9CA3AF"}
+							/>
+						)}
+					</View>
+					<Text
+						className={`text-xs mt-1 ${isComplete || isActive ? "font-montserrat-bold" : "font-montserrat-semibold"} uppercase`}
+						style={{ color: isComplete || isActive ? "#25551b" : "#9CA3AF" }}
+					>
+						{stepName}
+					</Text>
+				</View>
+			);
+		};
+
 		return (
 			<View
-				className="pb-4"
+				className="pb-3"
 				style={{
 					backgroundColor: "#FFFFFF",
-					borderBottomWidth: 1,
-					borderBottomColor: "#E2E2E2",
+					borderBottomWidth: 2,
+					borderBottomColor: "#EBEBEB",
 					position: "absolute",
 					top: 0,
 					left: 0,
@@ -154,22 +240,20 @@ export const MealPlanSection = () => {
 				}}
 			>
 				<View className="flex-row items-center justify-between px-4">
-					{/* Previous Week Arrow */}
 					<TouchableOpacity
 						onPress={handlePreviousWeekClick}
 						disabled={!hasPrevious}
 						style={{
 							opacity: hasPrevious ? 1 : 0.3,
 						}}
-                        {...buttonPress}
+						{...buttonPress}
 					>
 						<Ionicons name="chevron-back" size={24} color="#1f2937" />
 					</TouchableOpacity>
 
-					{/* Current Week Display */}
-                    <Text className="text-xl text-gray-800 uppercase tracking-wide font-montserrat-bold">
-                        {selectedWeek?.displayTitle}
-                    </Text>
+					<Text className="text-xl text-gray-800 uppercase tracking-wide font-montserrat-bold">
+						{selectedWeek?.displayTitle}
+					</Text>
 
 					<TouchableOpacity
 						onPress={handleNextWeekClick}
@@ -177,10 +261,49 @@ export const MealPlanSection = () => {
 						style={{
 							opacity: hasNext ? 1 : 0.3,
 						}}
-                        {...buttonPress}
+						{...buttonPress}
 					>
 						<Ionicons name="chevron-forward" size={24} color="#1f2937" />
 					</TouchableOpacity>
+				</View>
+
+				<View className="flex-row justify-center items-center px-12 pt-3">
+					<View className="flex-1 flex-row justify-between items-center">
+						{/* Plan Step */}
+						{renderStep("Plan", "calendar-outline", stepStates.plan)}
+
+						{/* Connector Line */}
+						<View
+							style={{
+								height: 3,
+								backgroundColor:
+									stepStates.plan === "complete" ? "#25551b" : "#EBEBEB",
+								flex: 1,
+								marginHorizontal: 8,
+								marginTop: -12,
+								borderRadius: 2,
+							}}
+						/>
+
+						{/* Shop Step */}
+						{renderStep("Shop", "cart-outline", stepStates.shop)}
+
+						{/* Connector Line */}
+						<View
+							style={{
+								height: 3,
+								backgroundColor:
+									stepStates.shop === "complete" ? "#25551b" : "#EBEBEB",
+								flex: 1,
+								marginHorizontal: 8,
+								marginTop: -12,
+								borderRadius: 2,
+							}}
+						/>
+
+						{/* Review Step */}
+						{renderStep("Review", "star-outline", stepStates.review)}
+					</View>
 				</View>
 			</View>
 		);
@@ -192,47 +315,24 @@ export const MealPlanSection = () => {
 		handleNextWeekClick,
 	]);
 
-	// Enhanced loading state with sticky calendar
 	if ((!dependenciesReady || loading) && !isLoadingWeekPlan) {
-		// Don't show full loading state when switching weeks
 		return (
 			<View className="flex-1">
 				{StickyCalendarSection}
 
-				{/* Content that scrolls underneath - with top padding for sticky header */}
 				<ScrollView
 					className="flex-1"
-					contentContainerStyle={{ paddingTop: 100 }}
+					contentContainerStyle={{ paddingTop: 110 }}
 				>
-					{/* Loading Header */}
-					<View
-						style={{
-							backgroundColor: "#F9FAFB",
-							borderColor: "#E5E7EB",
-						}}
-						className="mx-4 mb-6 border rounded-2xl p-6"
-					>
-						<View className="flex-row items-center justify-between">
-							<View className="flex-1">
-								<Text className="text-gray-500 text-sm font-montserrat-bold tracking-wide uppercase mb-1">
-									YOUR MEAL PLAN
-								</Text>
-								<Text className="text-gray-700 text-2xl font-montserrat-bold">
-									Loading your selected meals
-								</Text>
-							</View>
-							<View
-								style={{
-									backgroundColor: "#FFFFFF",
-								}}
-								className="w-12 h-12 rounded-xl items-center justify-center"
-							>
-								<Ionicons name="calendar" size={24} color="#25551b" />
-							</View>
-						</View>
+					<View className="px-6 pb-4">
+						<Text className="text-2xl font-montserrat-bold text-gray-800">
+							Hi Patrick!
+						</Text>
+						<Text className="text-lg font-montserrat-semibold text-gray-500">
+							Loading your personalized meal plan...
+						</Text>
 					</View>
 
-					{/* Loading Cards Preview */}
 					<ScrollView
 						horizontal
 						showsHorizontalScrollIndicator={false}
@@ -270,7 +370,7 @@ export const MealPlanSection = () => {
 										style={{ color: colors.text }}
 										className="font-montserrat-bold tracking-wide uppercase text-center"
 									>
-										LOADING MEAL PLAN
+										LOADING MEAL
 									</Text>
 								</View>
 							);
@@ -281,7 +381,6 @@ export const MealPlanSection = () => {
 		);
 	}
 
-	// Enhanced error state with sticky calendar
 	if (error) {
 		return (
 			<View className="flex-1">
@@ -289,32 +388,34 @@ export const MealPlanSection = () => {
 
 				<ScrollView
 					className="flex-1"
-					contentContainerStyle={{ paddingTop: 100 }}
+					contentContainerStyle={{ paddingTop: 110 }}
 				>
+					<View className="px-6 pb-4">
+						<Text className="text-2xl font-montserrat-bold text-gray-800">
+							Hi Patrick!
+						</Text>
+						<Text className="text-lg font-montserrat-semibold text-red-600">
+							Something went wrong loading your meals.
+						</Text>
+					</View>
+
 					<View
 						style={{
 							backgroundColor: "#FFE0D1",
 							borderColor: "#FF6525",
-							shadowColor: "#FF6525",
 						}}
-						className="mx-4 mb-6 border-2 rounded-2xl p-6 shadow-[0px_4px_0px_0px]"
+						className="mx-4 mb-6 border-2 rounded-2xl p-6 items-center"
 					>
-						<View className="flex-row items-center mb-4">
-							<View className="bg-[#FF6525] w-12 h-12 rounded-xl items-center justify-center mr-4">
-								<Ionicons name="alert-circle" size={24} color="#FFF" />
-							</View>
-							<View className="flex-1">
-								<Text className="text-[#FF6525] text-md font-montserrat-bold tracking-wide uppercase mb-1">
-									OOPS! SOMETHING WENT WRONG
-								</Text>
-								<Text className="text-[#FF6525] text-lg font-montserrat-bold tracking-wide uppercase">
-									Can't load your meal plan
-								</Text>
-							</View>
+						<View className="bg-[#FF6525] w-16 h-16 rounded-xl items-center justify-center mb-4">
+							<Ionicons name="alert-circle" size={32} color="#FFF" />
 						</View>
 
-						<Text className="text-[#FF6525]/80 text-center mb-4">
-							{error?.message}
+						<Text className="text-[#FF6525] text-xl font-montserrat-bold tracking-wide uppercase mb-2 text-center">
+							Can't load your meal plan
+						</Text>
+
+						<Text className="text-[#FF6525]/80 text-center mb-4 font-montserrat-semibold">
+							{error?.message || "Please try again"}
 						</Text>
 
 						<Button
@@ -325,7 +426,7 @@ export const MealPlanSection = () => {
 						>
 							<View className="flex-row items-center">
 								<Ionicons
-									name="refresh"
+									name="sync"
 									size={16}
 									color="#FF6525"
 									className="mr-2"
@@ -350,49 +451,24 @@ export const MealPlanSection = () => {
 				contentContainerStyle={{ paddingTop: 110, paddingBottom: 20 }}
 				showsVerticalScrollIndicator={false}
 			>
-				{/* Section Header with Selected Week Info */}
-				<View
-					style={{
-						borderWidth: 2,
-						borderColor: "#EBEBEB",
-						backgroundColor: "#FFFFFF",
-						shadowColor: "#EBEBEB",
-					}}
-					className="mx-4 mb-4 border rounded-2xl p-4 shadow-[0px_2px_0px_0px]"
-				>
-					<View className="flex-row items-center justify-between">
-						<View className="flex-1">
-							<Text className="text-xl uppercase font-montserrat-bold tracking-wide mb-1 text-gray-700">
-								{selectedWeek?.is_current_week
-									? "Your meal plan"
-									: `Week ${selectedWeek?.display_range} plan`}
+				<View className="px-6 pb-4">
+					<View>
+						<Text className="text-2xl font-montserrat-bold text-gray-800">
+							Hi Patrick!
+						</Text>
+						<Text className="text-lg font-montserrat-semibold text-gray-800">
+							We picked {displayMeals.length} meals that match your{" "}
+							<Text
+								className="text-xl font-montserrat-semibold text-gray-800 underline"
+								onPress={() => router.push("/profile")}
+							>
+								preferences
 							</Text>
-							<Text className="text-md font-montserrat text-gray-500">
-								{selectedWeek?.is_current_week
-									? `${displayMeals.length} meal${displayMeals.length !== 1 ? "s" : ""} selected • ${totalServings} total servings`
-									: `Meal plan for ${selectedWeek?.display_range}`}
-							</Text>
-						</View>
-
-						<View className="px-4 py-2 flex-row items-center justify-center gap-1 rounded-lg bg-lightgreen text-primary">
-							<Text className="text-sm font-montserrat-semibold text-primary">
-								{displayMeals.length}
-							</Text>
-							<Ionicons name="restaurant" size={20} color="#25551b" />
-						</View>
+							.
+						</Text>
 					</View>
-
-					{/* Loading indicator for week changes */}
-					{isLoadingWeekPlan && (
-						<View className="mt-3 pt-3 border-t border-gray-200">
-							<Text className="text-gray-500 text-sm text-center">
-								Loading meal plan...
-							</Text>
-						</View>
-					)}
 				</View>
 
-				{/* Meals Content */}
 				{displayMeals.length > 0 ? (
 					<ScrollView
 						horizontal
@@ -411,21 +487,16 @@ export const MealPlanSection = () => {
 								key={meal.id}
 								recipe={meal}
 								onPress={() => handleMealPress(meal)}
-								onServingsChange={updateMealServings}
-								showServingsEditor={true}
-								// Removed weekStatus prop since status is no longer used
 							/>
 						))}
 					</ScrollView>
 				) : (
-					/* Enhanced empty state */
 					<View
 						style={{
 							backgroundColor: "#EBF3E7",
 							borderColor: "#6B8E23",
-							shadowColor: "#6B8E23",
 						}}
-						className="mx-4 border-2 rounded-2xl p-6 shadow-[0px_4px_0px_0px] items-center"
+						className="mx-4 border-2 rounded-2xl p-6 items-center"
 					>
 						<View className="bg-[#6B8E23] w-16 h-16 rounded-xl items-center justify-center mb-4">
 							<Ionicons name="calendar-outline" size={32} color="#FFF" />
@@ -433,12 +504,12 @@ export const MealPlanSection = () => {
 						<Text className="text-[#6B8E23] text-xl font-montserrat-bold tracking-wide uppercase mb-2 text-center">
 							{selectedWeek?.is_current_week
 								? "No meals planned"
-								: `No meals for week ${selectedWeek?.display_range}`}
+								: `No meals this week`}
 						</Text>
 						<Text className="text-[#6B8E23]/80 text-center font-montserrat-semibold mb-4">
 							{selectedWeek?.is_current_week
-								? "Let's create your first meal plan!"
-								: "Start planning meals for this week"}
+								? "Let's get you some personalized meal suggestions!"
+								: "Generate meals that match your preferences"}
 						</Text>
 
 						<Button
@@ -454,44 +525,40 @@ export const MealPlanSection = () => {
 					</View>
 				)}
 
-				{/* Enhanced Action Buttons */}
 				{selectedWeek && displayMeals.length > 0 && (
-					<View className="px-4 flex-1 gap-4 mt-6">
-						{/* Edit meals button */}
-						<Button
-							variant="outline"
-							accessibilityRole="button"
-							accessibilityLabel="Edit meals"
-							accessibilityHint="Edit your meal plan and adjust servings"
-							className="border-2"
-							onPress={handleEditMeals}
-							{...buttonPress}
-						>
-							<Text className="uppercase">Change meals</Text>
-						</Button>
+					<View className="px-4 flex-1 gap-4 mt-2">
+						{selectedWeek.weekOffset >= 0 && (
+							<View className="flex-row items-center justify-between gap-2">
+								<View className="flex-1">
+									<Button
+										variant="outline"
+										accessibilityRole="button"
+										accessibilityLabel="Edit meals"
+										accessibilityHint="Edit your meal plan and adjust servings"
+										className="border-2"
+										onPress={handleEditMeals}
+										{...buttonPress}
+									>
+										<Text className="uppercase">Change meals</Text>
+									</Button>
+								</View>
 
-						{/* Regenerate button */}
-						<Button
-							variant="outline"
-							accessibilityRole="button"
-							accessibilityLabel="Regenerate meal plan"
-							accessibilityHint="Generate a new meal plan for this week"
-							className="border-2"
-							onPress={handleGenerateNewPlan}
-							{...buttonPress}
-						>
-							<View className="flex-row items-center">
-								<Ionicons
-									name="refresh"
-									size={16}
-									color="#25551b"
-									className="mr-2"
-								/>
-								<Text className="uppercase">Regenerate Plan</Text>
+								<Button
+									variant="outline"
+									accessibilityRole="button"
+									accessibilityLabel="Regenerate meal plan"
+									accessibilityHint="Generate a new meal plan for this week"
+									className="border-2"
+									onPress={handleGenerateNewPlan}
+									{...buttonPress}
+								>
+									<View className="flex-row items-center">
+										<Ionicons name="sync" size={24} color="#25551b" />
+									</View>
+								</Button>
 							</View>
-						</Button>
+						)}
 
-						{/* Add to cart button - only for current week */}
 						{selectedWeek.is_current_week && (
 							<Button
 								variant="default"
@@ -500,7 +567,19 @@ export const MealPlanSection = () => {
 								accessibilityHint="Add ingredients for the selected meals to your cart"
 								{...buttonPress}
 							>
-								<Text>Confirm & Add to Cart</Text>
+								<Text>Checkout with grocer</Text>
+							</Button>
+						)}
+
+						{selectedWeek.weekOffset === -1 && (
+							<Button
+								variant="outline"
+								accessibilityRole="button"
+								accessibilityLabel="Review Meals"
+								accessibilityHint="Review the meals you have selected for this week"
+								{...buttonPress}
+							>
+								<Text>Review Meals</Text>
 							</Button>
 						)}
 					</View>
