@@ -21,20 +21,18 @@ interface MealPlanState {
 	loading: boolean;
 	error: Error | null;
 	initialized: boolean;
+	dependenciesReady: boolean;
 
 	// Meal plan generation
-	generateInitialMealPlan: () => Promise<void>;
-	regenerateMealPlan: () => Promise<void>;
+	generateMealPlan: () => Promise<void>;
+	regenerateMealPlan: (weekId: string) => Promise<void>;
 
 	// Meal plan management
 	addMealToPlan: (recipe: RecipeWithTags, servings?: number) => void;
 	removeMealFromPlan: (mealId: string) => void;
 	updateMealServings: (mealId: string, servings: number) => void;
-	clearMealPlan: () => void;
 
 	// Meal plan queries
-	getCurrentMealPlan: (limit?: number) => MealPlanItem[];
-	getMealById: (mealId: string) => MealPlanItem | undefined;
 	isMealInPlan: (recipeId: string) => boolean;
 	getTotalServings: () => number;
 	getAvailableRecipes: () => RecipeWithTags[];
@@ -43,14 +41,9 @@ interface MealPlanState {
 	saveMealPlanForWeek: (
 		weekId: string,
 		meals?: MealPlanItem[],
-		status?: "draft" | "confirmed" | "completed",
 	) => Promise<void>;
 	loadMealPlanForWeek: (weekId: string) => Promise<void>;
 	getMealPlanForWeek: (weekId: string) => Promise<MealPlanItem[]>;
-	updateMealPlanStatus: (
-		weekId: string,
-		status: "draft" | "confirmed" | "completed",
-	) => Promise<void>;
 }
 
 const MealPlanContext = createContext<MealPlanState>({
@@ -58,21 +51,18 @@ const MealPlanContext = createContext<MealPlanState>({
 	loading: false,
 	error: null,
 	initialized: false,
-	generateInitialMealPlan: async () => {},
+	dependenciesReady: false,
+	generateMealPlan: async () => {},
 	regenerateMealPlan: async () => {},
 	addMealToPlan: () => {},
 	removeMealFromPlan: () => {},
 	updateMealServings: () => {},
-	clearMealPlan: () => {},
-	getCurrentMealPlan: () => [],
-	getMealById: () => undefined,
 	isMealInPlan: () => false,
 	getTotalServings: () => 0,
 	getAvailableRecipes: () => [],
 	saveMealPlanForWeek: async () => {},
 	loadMealPlanForWeek: async () => {},
 	getMealPlanForWeek: async () => [],
-	updateMealPlanStatus: async () => {},
 });
 
 export const useMealPlan = () => {
@@ -97,71 +87,23 @@ export function MealPlanProvider({ children }: PropsWithChildren) {
 	const { initialized: weeksInitialized } = useWeeks();
 	const { getRecommendations, getFilteredRecipes } = useRecipeRecommendations();
 
+    const dependenciesReady = useMemo(() => {
+		return (
+			referenceDataInitialized &&
+			recipesInitialized &&
+			preferencesInitialized &&
+			weeksInitialized
+		);
+	}, [
+		referenceDataInitialized,
+		recipesInitialized,
+		preferencesInitialized,
+		weeksInitialized,
+	]);
+
 	// Generate a unique ID for meal plan items
 	const generateMealId = () =>
 		`meal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-	// Generate initial meal plan based on preferences
-	const generateInitialMealPlan = useCallback(async () => {
-		if (!userPreferences) {
-			if (__DEV__) {
-				console.log(
-					"⚠️ No user preferences available for meal plan generation",
-				);
-			}
-			return;
-		}
-
-		try {
-			setLoading(true);
-			setError(null);
-
-			if (__DEV__) {
-				console.log("🍽️ Generating initial meal plan...");
-			}
-
-			const mealsToSelect = userPreferences.meals_per_week ?? 4;
-			const currentMealPlanRecipeIds = currentMealPlan.map((m) => m.recipe.id);
-
-			const recommendations = getRecommendations(userPreferences, {
-				count: mealsToSelect,
-				excludeRecipeIds: currentMealPlanRecipeIds,
-				currentMealPlanRecipeIds: currentMealPlanRecipeIds,
-			});
-
-			if (__DEV__) {
-				console.log("✅ Recommendations generated:", {
-					requested: mealsToSelect,
-					received: recommendations.length,
-				});
-			}
-
-			const mealPlanItems: MealPlanItem[] = recommendations.map((recipe) => ({
-				id: generateMealId(),
-				recipe,
-				servings:
-					userPreferences.serves_per_meal || recipe.default_servings || 1,
-			}));
-
-			setCurrentMealPlan(mealPlanItems);
-			setInitialized(true);
-		} catch (err) {
-			const error = err instanceof Error ? err : new Error(String(err));
-			console.error("Error generating meal plan:", error);
-			setError(error);
-		} finally {
-			setLoading(false);
-		}
-	}, [userPreferences, currentMealPlan, getRecommendations]);
-
-	// Regenerate meal plan (clear and generate new)
-	const regenerateMealPlan = useCallback(async () => {
-		if (__DEV__) {
-			console.log("🔄 Regenerating meal plan...");
-		}
-		setCurrentMealPlan([]);
-		await generateInitialMealPlan();
-	}, [generateInitialMealPlan]);
 
 	// Add a meal to the plan
 	const addMealToPlan = useCallback(
@@ -172,7 +114,7 @@ export function MealPlanProvider({ children }: PropsWithChildren) {
 
 			if (existingMeal) {
 				if (__DEV__) {
-					console.log("⚠️ Recipe already in meal plan:", recipe.name);
+					console.log("Recipe already in meal plan:", recipe.name);
 				}
 				return;
 			}
@@ -190,7 +132,7 @@ export function MealPlanProvider({ children }: PropsWithChildren) {
 			};
 
 			if (__DEV__) {
-				console.log("➕ Adding meal to plan:", recipe.name);
+				console.log("Adding meal to plan:", recipe.name);
 			}
 
 			setCurrentMealPlan((prev) => [...prev, newMeal]);
@@ -220,30 +162,6 @@ export function MealPlanProvider({ children }: PropsWithChildren) {
 		);
 	}, []);
 
-	// Clear meal plan
-	const clearMealPlan = useCallback(() => {
-		if (__DEV__) {
-			console.log("🗑️ Clearing meal plan");
-		}
-		setCurrentMealPlan([]);
-	}, []);
-
-	// Get current meal plan with optional limit
-	const getCurrentMealPlan = useCallback(
-		(limit?: number): MealPlanItem[] => {
-			return limit ? currentMealPlan.slice(0, limit) : currentMealPlan;
-		},
-		[currentMealPlan],
-	);
-
-	// Get meal by ID
-	const getMealById = useCallback(
-		(mealId: string): MealPlanItem | undefined => {
-			return currentMealPlan.find((meal) => meal.id === mealId);
-		},
-		[currentMealPlan],
-	);
-
 	// Check if recipe is in meal plan
 	const isMealInPlan = useCallback(
 		(recipeId: string): boolean => {
@@ -269,13 +187,10 @@ export function MealPlanProvider({ children }: PropsWithChildren) {
 		);
 	}, [userPreferences, recipes, currentMealPlan, getFilteredRecipes]);
 
-	// Save meal plan for a specific week
 	const saveMealPlanForWeek = useCallback(
-		async (
-			weekId: string,
-			meals: MealPlanItem[] = currentMealPlan,
-			status: "draft" | "confirmed" | "completed" = "draft",
-		) => {
+		async (weekId: string, meals?: MealPlanItem[]) => {
+			const mealsToSave = meals || currentMealPlan;
+
 			try {
 				setLoading(true);
 				setError(null);
@@ -283,16 +198,14 @@ export function MealPlanProvider({ children }: PropsWithChildren) {
 				if (__DEV__) {
 					console.log("💾 Saving meal plan for week:", {
 						weekId,
-						mealCount: meals.length,
-						status,
+						mealCount: mealsToSave.length,
 					});
 				}
 
-				const mealsData = meals.map((meal, index) => ({
+				const mealsData = mealsToSave.map((meal, index) => ({
 					recipe_id: meal.recipe.id,
 					servings: meal.servings,
 					sort_order: index,
-					status: status,
 				}));
 
 				const { error: saveError } = await supabase.rpc(
@@ -323,48 +236,99 @@ export function MealPlanProvider({ children }: PropsWithChildren) {
 		[currentMealPlan, session?.user?.id],
 	);
 
-	// Load meal plan for a specific week
-	const loadMealPlanForWeek = useCallback(
-		async (weekId: string) => {
+    const generateMealPlan = useCallback(
+		async (weekId?: string) => {
+
+            if (!dependenciesReady) {
+				if (__DEV__) {
+					console.log("⏳ Dependencies not ready, skipping meal plan generation", {
+						referenceData: referenceDataInitialized,
+						recipes: recipesInitialized,
+						preferences: preferencesInitialized,
+						weeks: weeksInitialized,
+					});
+				}
+				return;
+			}
+
 			try {
 				setLoading(true);
 				setError(null);
 
 				if (__DEV__) {
-					console.log("📖 Loading meal plan for week:", weekId);
+					console.log("🍽️ Generating initial meal plan...", {
+						hasPreferences: !!userPreferences,
+						mealsPerWeek: userPreferences?.meals_per_week,
+					});
 				}
 
-				const savedMeals = await getMealPlanForWeek(weekId);
+				const mealsToSelect = userPreferences?.meals_per_week ?? 4;
+				const currentMealPlanRecipeIds = currentMealPlan.map(
+					(m) => m.recipe.id,
+				);
 
-				if (savedMeals.length > 0) {
+				const recommendations = getRecommendations(userPreferences!, {
+					count: mealsToSelect,
+					excludeRecipeIds: currentMealPlanRecipeIds,
+					currentMealPlanRecipeIds: currentMealPlanRecipeIds,
+				});
+
+				if (__DEV__) {
+					console.log("✅ Recommendations generated:", {
+						requested: mealsToSelect,
+						received: recommendations.length,
+					});
+				}
+
+				const mealPlanItems: MealPlanItem[] = recommendations.map((recipe) => ({
+					id: generateMealId(),
+					recipe,
+					servings:
+						userPreferences?.serves_per_meal || recipe.default_servings || 1,
+				}));
+
+				setCurrentMealPlan(mealPlanItems);
+				setInitialized(true);
+
+				// Auto-save the generated meal plan if weekId is provided
+				if (weekId && session?.user?.id) {
 					if (__DEV__) {
-						console.log("✅ Loaded existing meal plan");
+						console.log("💾 Auto-saving generated meal plan for week:", weekId);
 					}
-					setCurrentMealPlan(savedMeals);
-				} else {
-					if (__DEV__) {
-						console.log("🎲 No saved meal plan, generating new one");
+
+					try {
+						await saveMealPlanForWeek(weekId, mealPlanItems);
+						if (__DEV__) {
+							console.log("✅ Generated meal plan saved successfully");
+						}
+					} catch (saveError) {
+						// Log the error but don't throw - the meal plan is still usable locally
+						console.error("Failed to save generated meal plan:", saveError);
 					}
-					await generateInitialMealPlan();
 				}
 			} catch (err) {
 				const error = err instanceof Error ? err : new Error(String(err));
-				console.error("Error loading meal plan:", error);
+				console.error("Error generating meal plan:", error);
 				setError(error);
-
-				// Fallback to generating new plan
-				await generateInitialMealPlan();
 			} finally {
 				setLoading(false);
 			}
 		},
-		[generateInitialMealPlan],
+		[
+            dependenciesReady,
+			currentMealPlan,
+			getRecommendations,
+			session?.user?.id,
+		],
 	);
 
-	// Get meal plan for a specific week from database
 	const getMealPlanForWeek = useCallback(
 		async (weekId: string): Promise<MealPlanItem[]> => {
 			try {
+				if (!session?.user?.id) {
+					return [];
+				}
+
 				const { data, error } = await supabase.rpc(
 					"get_week_meal_plan_with_recipes",
 					{
@@ -401,7 +365,6 @@ export function MealPlanProvider({ children }: PropsWithChildren) {
 						id: `saved_${item.id}`,
 						recipe: recipe,
 						servings: item.servings,
-						status: item.status as "draft" | "confirmed" | "completed",
 						week_id: item.week_id,
 						user_id: item.user_id,
 						created_at: item.created_at,
@@ -418,62 +381,84 @@ export function MealPlanProvider({ children }: PropsWithChildren) {
 		[session?.user?.id, recipes],
 	);
 
-	// Update meal plan status
-	const updateMealPlanStatus = useCallback(
-		async (weekId: string, status: "draft" | "confirmed" | "completed") => {
-			try {
-				setLoading(true);
-				setError(null);
-
+    const loadMealPlanForWeek = useCallback(
+        async (weekId: string) => {
+            if (!dependenciesReady) {
 				if (__DEV__) {
-					console.log("📝 Updating meal plan status:", { weekId, status });
+					console.log("⏳ Dependencies not ready, skipping meal plan load");
 				}
-
-				const { error: updateError } = await supabase.rpc(
-					"update_week_meal_plan_status",
-					{
-						p_week_id: weekId,
-						p_status: status,
-						p_user_id: session?.user?.id,
-					},
-				);
-
-				if (updateError) {
-					throw new Error(updateError.message);
-				}
-
-				if (__DEV__) {
-					console.log(`✅ Meal plan status updated to ${status}`);
-				}
-			} catch (err) {
-				const error = err instanceof Error ? err : new Error(String(err));
-				console.error("Error updating meal plan status:", error);
-				setError(error);
-				throw error;
-			} finally {
-				setLoading(false);
+				return;
 			}
-		},
-		[session?.user?.id],
-	);
 
-	// Initialize meal plan when all dependencies are ready
-	useEffect(() => {
-		if (
-			recipesInitialized &&
-			userPreferences &&
-			!initialized
-		) {
+            try {
+                setLoading(true);
+                setError(null);
+
+                if (__DEV__) {
+                    console.log("📖 Loading meal plan for week:", weekId, {
+                        recipesAvailable: recipes.length,
+                        preferencesReady: !!userPreferences
+                    });
+                }
+
+                const savedMeals = await getMealPlanForWeek(weekId);
+
+                if (savedMeals.length > 0) {
+                    if (__DEV__) {
+                        console.log("✅ Loaded existing meal plan");
+                    }
+                    setCurrentMealPlan(savedMeals);
+                    setInitialized(true);
+                } else {
+                    if (__DEV__) {
+                        console.log("🎲 No saved meal plan found");
+                    }
+                    
+                    // Check if preferences are ready before generating
+                    if (userPreferences && preferencesInitialized) {
+                        if (__DEV__) {
+                            console.log("🎲 Generating and saving new meal plan");
+                        }
+                        await generateMealPlan(weekId);
+                    } else {
+                        if (__DEV__) {
+                            console.log("⏳ Preferences not ready, skipping generation");
+                        }
+                        // Set empty state but mark as initialized
+                        setCurrentMealPlan([]);
+                        setInitialized(true);
+                    }
+                }
+            } catch (err) {
+                const error = err instanceof Error ? err : new Error(String(err));
+                console.error("Error loading meal plan:", error);
+                setError(error);
+
+                // Only try to generate if preferences and recipes are ready
+                if (userPreferences && preferencesInitialized && recipesInitialized) {
+                    await generateMealPlan(weekId);
+                } else {
+                    setCurrentMealPlan([]);
+                    setInitialized(true);
+                }
+            } finally {
+                setLoading(false);
+            }
+        },
+        [dependenciesReady],
+    );
+
+    // Regenerate meal plan (clear and generate new)
+	const regenerateMealPlan = useCallback(
+		async (weekId?: string) => {
 			if (__DEV__) {
-				console.log("🔄 Initializing meal plan");
+				console.log("🔄 Regenerating meal plan...");
 			}
-			generateInitialMealPlan();
-		}
-	}, [
-		recipesInitialized,
-		initialized,
-		generateInitialMealPlan,
-	]);
+			setCurrentMealPlan([]);
+			await generateMealPlan(weekId);
+		},
+		[generateMealPlan],
+	);
 
 	const contextValue = useMemo(
 		() => ({
@@ -481,42 +466,36 @@ export function MealPlanProvider({ children }: PropsWithChildren) {
 			loading,
 			error,
 			initialized,
-			generateInitialMealPlan,
+            dependenciesReady,
+			generateMealPlan,
 			regenerateMealPlan,
 			addMealToPlan,
 			removeMealFromPlan,
 			updateMealServings,
-			clearMealPlan,
-			getCurrentMealPlan,
-			getMealById,
 			isMealInPlan,
 			getTotalServings,
 			getAvailableRecipes,
 			saveMealPlanForWeek,
 			loadMealPlanForWeek,
 			getMealPlanForWeek,
-			updateMealPlanStatus,
 		}),
 		[
 			currentMealPlan,
 			loading,
 			error,
 			initialized,
-			generateInitialMealPlan,
+            dependenciesReady,
+			generateMealPlan,
 			regenerateMealPlan,
 			addMealToPlan,
 			removeMealFromPlan,
 			updateMealServings,
-			clearMealPlan,
-			getCurrentMealPlan,
-			getMealById,
 			isMealInPlan,
 			getTotalServings,
 			getAvailableRecipes,
 			saveMealPlanForWeek,
 			loadMealPlanForWeek,
 			getMealPlanForWeek,
-			updateMealPlanStatus,
 		],
 	);
 

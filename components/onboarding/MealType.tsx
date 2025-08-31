@@ -105,10 +105,9 @@ const MealTypesStep: React.FC<MealTypesStepProps> = ({
 				pref => pref.tag_id !== mealTypeTag.id
 			);
 		} else {
-			// Add the tag (meal types don't need priority)
 			updatedTags = [
 				...currentUserPreferenceTags,
-				{ tag_id: mealTypeTag.id, priority: null }
+				{ tag_id: mealTypeTag.id, }
 			];
 		}
 

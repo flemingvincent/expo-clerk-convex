@@ -114,17 +114,14 @@ const PreferencesStep: React.FC<PreferencesStepProps> = ({
 
 		let updatedPreferences;
 		if (existingTagIndex !== -1) {
-			// Remove the tag
 			updatedPreferences = currentUserPreferenceTags.filter(
 				(tag) => tag.tag_id !== tagId,
 			);
 		} else {
-			// Add the tag (non-goal tags don't need priority)
 			updatedPreferences = [
 				...currentUserPreferenceTags,
 				{
-					tag_id: tagId,
-					priority: null,
+					tag_id: tagId
 				},
 			];
 		}

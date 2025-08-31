@@ -14,7 +14,7 @@ import { MealPlanItem, RecipeWithTags } from "@/types/database";
 export default function MealPlannerScreen() {
 	const router = useRouter();
 	const params = useLocalSearchParams();
-	const { weekId, weekStart, weekEnd, displayRange } = params;
+	const { weekId, displayRange } = params;
 
 	const {
 		currentMealPlan,
@@ -26,12 +26,11 @@ export default function MealPlannerScreen() {
 		addMealToPlan,
 		removeMealFromPlan,
 		updateMealServings,
+        regenerateMealPlan
 	} = useMealPlan();
 
 	const { getWeekById } = useWeeks();
-	const { recipes } = useRecipes();
 
-	// Combine loading states
 	const loading = mealPlanLoading;
 	const error = mealPlanError;
 
@@ -47,16 +46,19 @@ export default function MealPlannerScreen() {
 	const [hasChanges, setHasChanges] = useState(false);
 
 	useEffect(() => {
-
 		if (weekId) {
-			loadMealPlanForWeek(weekId as string).then(() => {
-				// Meal plan loaded, it will update currentMealPlan
+ 			loadMealPlanForWeek(weekId as string).then(() => {
+				if (__DEV__) {
+					console.log("Meal plan ready for week:", weekId);
+				}
 			});
 		}
-	}, [weekId, loadMealPlanForWeek]);
+	}, [weekId]);
 
-	useEffect(() => {
+    useEffect(() => {
 		setSelectedMeals(currentMealPlan);
+		// Reset hasChanges when we get a fresh meal plan
+		setHasChanges(false);
 	}, [currentMealPlan]);
 
 	const handleBack = () => {
@@ -75,10 +77,23 @@ export default function MealPlannerScreen() {
 			// Use the provider method to save
 			await saveMealPlanForWeek(weekId as string, selectedMeals);
 			console.log("Saved changes for week:", weekId);
+            setHasChanges(false);
 			router.back();
 		} catch (error) {
 			console.error("Error saving meal plan:", error);
 			// Handle error - maybe show an alert
+		}
+	};
+
+    const handleRegeneratePlan = async () => {
+		if (!weekId) return;
+		
+		try {
+			// This will regenerate and auto-save
+			await regenerateMealPlan(weekId as string);
+			setHasChanges(false); // Reset since we have a fresh saved plan
+		} catch (error) {
+			console.error("Error regenerating meal plan:", error);
 		}
 	};
 

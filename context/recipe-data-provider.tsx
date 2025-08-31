@@ -58,9 +58,6 @@ export function RecipeProvider({ children }: PropsWithChildren) {
 	const [error, setError] = useState<Error | null>(null);
 	const [initialized, setInitialized] = useState(false);
 
-	const { session } = useAuth();
-	const { initialized: tagsInitialized } = useReferenceData();
-
 	const fetchRecipes = useCallback(async () => {
 		try {
 			setLoading(true);
@@ -168,12 +165,11 @@ export function RecipeProvider({ children }: PropsWithChildren) {
 		[recipes],
 	);
 
-	// Initialize recipes when tags are ready
 	useEffect(() => {
-		if (tagsInitialized && !initialized) {
-			fetchRecipes();
-		}
-	}, [tagsInitialized, initialized, fetchRecipes]);
+        if (!initialized) {
+            fetchRecipes();
+        }
+    }, [initialized]);
 
 	const contextValue = useMemo(
 		() => ({

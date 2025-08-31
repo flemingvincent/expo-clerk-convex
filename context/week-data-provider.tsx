@@ -8,7 +8,6 @@ import {
 	useMemo,
 } from "react";
 import { supabase } from "@/config/supabase";
-import { useAuth } from "./supabase-provider";
 import { WeekWithComputed } from "@/types/database";
 
 interface WeeksState {
@@ -23,21 +22,10 @@ interface WeeksState {
 
 	// Navigation methods
 	getWeekById: (weekId: string) => WeekWithComputed | undefined;
-	getWeekByOffset: (offset: number) => WeekWithComputed | undefined;
 	getWeeksRange: (startOffset: number, endOffset: number) => WeekWithComputed[];
-	getUpcomingWeeks: (count: number) => WeekWithComputed[];
-	getPastWeeks: (count: number) => WeekWithComputed[];
 
 	// Helper methods
-	navigateToWeek: (weekId: string) => WeekWithComputed | undefined;
-	navigateToOffset: (offset: number) => WeekWithComputed | undefined;
-	navigateToNextWeek: () => WeekWithComputed | undefined;
-	navigateToPreviousWeek: () => WeekWithComputed | undefined;
-	getCurrentWeekOffset: () => number;
-	getWeekDateRange: (weekId: string) => { start: Date; end: Date } | null;
 	isCurrentWeek: (weekId: string) => boolean;
-	isPastWeek: (weekId: string) => boolean;
-	isFutureWeek: (weekId: string) => boolean;
 }
 
 const WeeksContext = createContext<WeeksState>({
@@ -48,19 +36,8 @@ const WeeksContext = createContext<WeeksState>({
 	initialized: false,
 	refreshWeeks: async () => {},
 	getWeekById: () => undefined,
-	getWeekByOffset: () => undefined,
 	getWeeksRange: () => [],
-	getUpcomingWeeks: () => [],
-	getPastWeeks: () => [],
-	navigateToWeek: () => undefined,
-	navigateToOffset: () => undefined,
-	navigateToNextWeek: () => undefined,
-	navigateToPreviousWeek: () => undefined,
-	getCurrentWeekOffset: () => 0,
-	getWeekDateRange: () => null,
 	isCurrentWeek: () => false,
-	isPastWeek: () => false,
-	isFutureWeek: () => false,
 });
 
 export const useWeeks = () => {
@@ -78,8 +55,6 @@ export function WeeksProvider({ children }: PropsWithChildren) {
 	const [error, setError] = useState<Error | null>(null);
 	const [initialized, setInitialized] = useState(false);
 
-	const { session } = useAuth();
-
 	const fetchWeeks = useCallback(async () => {
 		try {
 			setLoading(true);
@@ -91,7 +66,6 @@ export function WeeksProvider({ children }: PropsWithChildren) {
 
 			// Get current date for calculations
 			const today = new Date();
-			const todayStr = today.toISOString().split("T")[0];
 
 			// Fetch weeks around current date (e.g., 4 weeks back, 8 weeks forward)
 			const startDate = new Date(today.getTime() - 28 * 24 * 60 * 60 * 1000);
@@ -188,7 +162,6 @@ export function WeeksProvider({ children }: PropsWithChildren) {
 		}
 	}, []);
 
-	// Get week by ID
 	const getWeekById = useCallback(
 		(weekId: string): WeekWithComputed | undefined => {
 			return weeks.find((w) => w.id === weekId);
@@ -196,15 +169,6 @@ export function WeeksProvider({ children }: PropsWithChildren) {
 		[weeks],
 	);
 
-	// Get week by offset from current week
-	const getWeekByOffset = useCallback(
-		(offset: number): WeekWithComputed | undefined => {
-			return weeks.find((w) => w.weekOffset === offset);
-		},
-		[weeks],
-	);
-
-	// Get range of weeks by offset
 	const getWeeksRange = useCallback(
 		(startOffset: number, endOffset: number): WeekWithComputed[] => {
 			return weeks.filter(
@@ -214,100 +178,6 @@ export function WeeksProvider({ children }: PropsWithChildren) {
 		[weeks],
 	);
 
-	// Get upcoming weeks (current + future)
-	const getUpcomingWeeks = useCallback(
-		(count: number): WeekWithComputed[] => {
-			return weeks
-				.filter((w) => w.status === "current" || w.status === "future")
-				.slice(0, count);
-		},
-		[weeks],
-	);
-
-	// Get past weeks
-	const getPastWeeks = useCallback(
-		(count: number): WeekWithComputed[] => {
-			return weeks
-				.filter((w) => w.status === "past")
-				.sort(
-					(a, b) =>
-						new Date(b.start_date).getTime() - new Date(a.start_date).getTime(),
-				)
-				.slice(0, count);
-		},
-		[weeks],
-	);
-
-	// Navigate to a specific week
-	const navigateToWeek = useCallback(
-		(weekId: string): WeekWithComputed | undefined => {
-			const week = getWeekById(weekId);
-			if (week) {
-				if (__DEV__) {
-					console.log("📅 Navigating to week:", week.displayTitle);
-				}
-				// You could emit an event or update navigation state here
-				// For now, just return the week
-				return week;
-			}
-			return undefined;
-		},
-		[getWeekById],
-	);
-
-	// Navigate by offset
-	const navigateToOffset = useCallback(
-		(offset: number): WeekWithComputed | undefined => {
-			const week = getWeekByOffset(offset);
-			if (week) {
-				if (__DEV__) {
-					console.log(
-						"📅 Navigating to week offset:",
-						offset,
-						week.displayTitle,
-					);
-				}
-				return week;
-			}
-			return undefined;
-		},
-		[getWeekByOffset],
-	);
-
-	// Navigate to next week
-	const navigateToNextWeek = useCallback((): WeekWithComputed | undefined => {
-		if (!currentWeek) return undefined;
-		return navigateToOffset(currentWeek.weekOffset + 1);
-	}, [currentWeek, navigateToOffset]);
-
-	// Navigate to previous week
-	const navigateToPreviousWeek = useCallback(():
-		| WeekWithComputed
-		| undefined => {
-		if (!currentWeek) return undefined;
-		return navigateToOffset(currentWeek.weekOffset - 1);
-	}, [currentWeek, navigateToOffset]);
-
-	// Get current week offset
-	const getCurrentWeekOffset = useCallback((): number => {
-		return currentWeek?.weekOffset ?? 0;
-	}, [currentWeek]);
-
-	// Get date range for a week
-	const getWeekDateRange = useCallback(
-		(weekId: string): { start: Date; end: Date } | null => {
-			const week = getWeekById(weekId);
-			if (!week) return null;
-
-			return {
-				start: new Date(week.start_date),
-				end: new Date(week.end_date),
-			};
-		},
-		[getWeekById],
-	);
-
-	// Check if week is current
 	const isCurrentWeek = useCallback(
 		(weekId: string): boolean => {
 			const week = getWeekById(weekId);
@@ -316,66 +186,10 @@ export function WeeksProvider({ children }: PropsWithChildren) {
 		[getWeekById],
 	);
 
-	// Check if week is in the past
-	const isPastWeek = useCallback(
-		(weekId: string): boolean => {
-			const week = getWeekById(weekId);
-			return week?.status === "past";
-		},
-		[getWeekById],
-	);
-
-	// Check if week is in the future
-	const isFutureWeek = useCallback(
-		(weekId: string): boolean => {
-			const week = getWeekById(weekId);
-			return week?.status === "future";
-		},
-		[getWeekById],
-	);
-
-	// Initialize weeks on mount
 	useEffect(() => {
 		if (!initialized) {
 			fetchWeeks();
 		}
-	}, [initialized, fetchWeeks]);
-
-	// Refresh weeks periodically to handle week transitions
-	useEffect(() => {
-		if (!initialized) return;
-
-		// Check daily at midnight if we need to refresh weeks
-		const checkForWeekTransition = () => {
-			const now = new Date();
-			const tomorrow = new Date(now);
-			tomorrow.setDate(tomorrow.getDate() + 1);
-			tomorrow.setHours(0, 0, 0, 0);
-
-			const msUntilMidnight = tomorrow.getTime() - now.getTime();
-
-			const timeout = setTimeout(() => {
-				if (__DEV__) {
-					console.log("📅 Checking for week transition at midnight");
-				}
-				fetchWeeks();
-
-				// Set up daily check
-				const interval = setInterval(
-					() => {
-						fetchWeeks();
-					},
-					24 * 60 * 60 * 1000,
-				); // 24 hours
-
-				return () => clearInterval(interval);
-			}, msUntilMidnight);
-
-			return () => clearTimeout(timeout);
-		};
-
-		const cleanup = checkForWeekTransition();
-		return cleanup;
 	}, [initialized, fetchWeeks]);
 
 	const contextValue = useMemo(
@@ -387,19 +201,8 @@ export function WeeksProvider({ children }: PropsWithChildren) {
 			initialized,
 			refreshWeeks: fetchWeeks,
 			getWeekById,
-			getWeekByOffset,
 			getWeeksRange,
-			getUpcomingWeeks,
-			getPastWeeks,
-			navigateToWeek,
-			navigateToOffset,
-			navigateToNextWeek,
-			navigateToPreviousWeek,
-			getCurrentWeekOffset,
-			getWeekDateRange,
 			isCurrentWeek,
-			isPastWeek,
-			isFutureWeek,
 		}),
 		[
 			weeks,
@@ -409,19 +212,8 @@ export function WeeksProvider({ children }: PropsWithChildren) {
 			initialized,
 			fetchWeeks,
 			getWeekById,
-			getWeekByOffset,
 			getWeeksRange,
-			getUpcomingWeeks,
-			getPastWeeks,
-			navigateToWeek,
-			navigateToOffset,
-			navigateToNextWeek,
-			navigateToPreviousWeek,
-			getCurrentWeekOffset,
-			getWeekDateRange,
 			isCurrentWeek,
-			isPastWeek,
-			isFutureWeek,
 		],
 	);
 

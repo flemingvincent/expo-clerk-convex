@@ -9,19 +9,19 @@ import { usePressAnimation } from "@/hooks/onPressAnimation";
 import { MealPlanItem } from "@/types/database";
 import { useMealPlan } from "@/context/meal-plan-provider";
 import { useWeeks } from "@/context/week-data-provider";
+import * as Haptics from "expo-haptics";
 
 export const MealPlanSection = () => {
 	const router = useRouter();
-	const calendarScrollRef = useRef<ScrollView>(null);
 
 	const {
 		currentMealPlan,
 		loading: mealPlanLoading,
 		error: mealPlanError,
-		getCurrentMealPlan,
-		generateInitialMealPlan,
 		updateMealServings,
 		loadMealPlanForWeek,
+		regenerateMealPlan,
+		dependenciesReady,
 	} = useMealPlan();
 
 	const { weeks, currentWeek, getWeekById, getWeeksRange } = useWeeks();
@@ -36,10 +36,27 @@ export const MealPlanSection = () => {
 		if (currentWeek && !selectedWeekId) {
 			setSelectedWeekId(currentWeek.id);
 		}
-	}, [currentWeek, selectedWeekId]);
+	}, [currentWeek]);
+
+	useEffect(() => {
+		if (!selectedWeekId || !dependenciesReady) {
+			return;
+		}
+
+		(async () => {
+			setIsLoadingWeekPlan(true);
+			try {
+				await loadMealPlanForWeek(selectedWeekId);
+			} catch (error) {
+				console.error("Error loading meal plan:", error);
+			} finally {
+				setIsLoadingWeekPlan(false);
+			}
+		})();
+	}, [selectedWeekId, dependenciesReady]);
 
 	const displayWeeks = useMemo(() => {
-		return getWeeksRange(0, 3);
+		return getWeeksRange(-1, 3);
 	}, [weeks, getWeeksRange]);
 
 	const buttonPress = usePressAnimation({
@@ -53,25 +70,37 @@ export const MealPlanSection = () => {
 	};
 
 	const handleWeekPress = useCallback(
-		async (weekId: string) => {
+		(weekId: string) => {
 			if (weekId === selectedWeekId) return;
-
 			setSelectedWeekId(weekId);
-			setIsLoadingWeekPlan(true);
-
-			try {
-				await loadMealPlanForWeek(weekId); // This method is from useMealPlan()
-			} catch (error) {
-				console.error("Error loading meal plan for week:", error);
-			} finally {
-				setIsLoadingWeekPlan(false);
-			}
 		},
-		[selectedWeekId, loadMealPlanForWeek],
+		[selectedWeekId],
 	);
 
+	const handlePreviousWeekClick = () => {
+		const currentIndex = displayWeeks.findIndex(
+			(week) => week.id === selectedWeekId,
+		);
+		if (currentIndex > 0) {
+			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+			const previousWeek = displayWeeks[currentIndex - 1];
+			handleWeekPress(previousWeek.id);
+		}
+	};
+
+	const handleNextWeekClick = () => {
+		const currentIndex = displayWeeks.findIndex(
+			(week) => week.id === selectedWeekId,
+		);
+		if (currentIndex < displayWeeks.length - 1) {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+			const nextWeek = displayWeeks[currentIndex + 1];
+			handleWeekPress(nextWeek.id);
+		}
+	};
+
 	const handleEditMeals = () => {
-		const selectedWeek = getWeekById(selectedWeekId!); // This method is from useWeeks()
+		const selectedWeek = getWeekById(selectedWeekId!);
 		if (!selectedWeek) return;
 
 		router.push({
@@ -87,21 +116,30 @@ export const MealPlanSection = () => {
 
 	const handleGenerateNewPlan = async () => {
 		try {
-			await generateInitialMealPlan(); // This method is from useMealPlan()
+			if (selectedWeekId) {
+				await regenerateMealPlan(selectedWeekId);
+			}
 		} catch (error) {
 			console.error("Error generating new meal plan:", error);
 		}
 	};
 
-	const displayMeals = getCurrentMealPlan();
+	const displayMeals = currentMealPlan;
 	const selectedWeek = selectedWeekId ? getWeekById(selectedWeekId) : null;
 	const totalServings = displayMeals.reduce(
 		(sum, meal) => sum + meal.servings,
 		0,
 	);
 
-	const StickyCalendarSection = useMemo(
-		() => (
+	// Replace the StickyCalendarSection useMemo block with this:
+	const StickyCalendarSection = useMemo(() => {
+		const currentIndex = displayWeeks.findIndex(
+			(week) => week.id === selectedWeekId,
+		);
+		const hasPrevious = currentIndex > 0;
+		const hasNext = currentIndex < displayWeeks.length - 1;
+
+		return (
 			<View
 				className="pb-4"
 				style={{
@@ -115,54 +153,48 @@ export const MealPlanSection = () => {
 					zIndex: 10,
 				}}
 			>
-				<ScrollView
-					ref={calendarScrollRef}
-					horizontal
-					showsHorizontalScrollIndicator={false}
-					contentContainerStyle={{ paddingHorizontal: 12 }}
-				>
-					<View className="flex-row gap-3 py-1">
-						{displayWeeks.map((week) => (
-							<TouchableOpacity
-								key={week.id}
-								onPress={() => handleWeekPress(week.id)}
-								style={{
-									backgroundColor:
-										week.id === selectedWeekId ? "#CCEA1F" : "#FFFFFF",
-									borderColor:
-										week.id === selectedWeekId ? "#25551b" : "#E2E2E2",
-									shadowColor:
-										week.id === selectedWeekId ? "#25551b" : "#E2E2E2",
-								}}
-								className="py-4 px-4 border-2 rounded-xl items-center min-w-[100px] shadow-[0px_2px_0px_0px] active:shadow-[0px_0px_0px_0px] active:translate-y-[2px]"
-							>
-								<Text
-									className="text-sm font-montserrat-bold"
-									style={{
-										color: week.id === selectedWeekId ? "#25551b" : "#6B7280",
-									}}
-								>
-									{week.displayTitle}
-								</Text>
-								<Text
-									className="text-lg font-montserrat-semibold"
-									style={{
-										color: week.id === selectedWeekId ? "#25551b" : "#374151",
-									}}
-								>
-									{week.display_range}
-								</Text>
-							</TouchableOpacity>
-						))}
-					</View>
-				</ScrollView>
+				<View className="flex-row items-center justify-between px-4">
+					{/* Previous Week Arrow */}
+					<TouchableOpacity
+						onPress={handlePreviousWeekClick}
+						disabled={!hasPrevious}
+						style={{
+							opacity: hasPrevious ? 1 : 0.3,
+						}}
+                        {...buttonPress}
+					>
+						<Ionicons name="chevron-back" size={24} color="#1f2937" />
+					</TouchableOpacity>
+
+					{/* Current Week Display */}
+                    <Text className="text-xl text-gray-800 uppercase tracking-wide font-montserrat-bold">
+                        {selectedWeek?.displayTitle}
+                    </Text>
+
+					<TouchableOpacity
+						onPress={handleNextWeekClick}
+						disabled={!hasNext}
+						style={{
+							opacity: hasNext ? 1 : 0.3,
+						}}
+                        {...buttonPress}
+					>
+						<Ionicons name="chevron-forward" size={24} color="#1f2937" />
+					</TouchableOpacity>
+				</View>
 			</View>
-		),
-		[displayWeeks, selectedWeekId, handleWeekPress],
-	);
+		);
+	}, [
+		displayWeeks,
+		selectedWeekId,
+		selectedWeek,
+		handlePreviousWeekClick,
+		handleNextWeekClick,
+	]);
 
 	// Enhanced loading state with sticky calendar
-	if (loading) {
+	if ((!dependenciesReady || loading) && !isLoadingWeekPlan) {
+		// Don't show full loading state when switching weeks
 		return (
 			<View className="flex-1">
 				{StickyCalendarSection}
@@ -381,7 +413,7 @@ export const MealPlanSection = () => {
 								onPress={() => handleMealPress(meal)}
 								onServingsChange={updateMealServings}
 								showServingsEditor={true}
-								weekStatus={selectedWeek?.status}
+								// Removed weekStatus prop since status is no longer used
 							/>
 						))}
 					</ScrollView>
@@ -409,41 +441,58 @@ export const MealPlanSection = () => {
 								: "Start planning meals for this week"}
 						</Text>
 
-						{selectedWeek?.is_current_week && (
-							<Button
-								onPress={handleGenerateNewPlan}
-								variant="outline"
-								className="border-[#6B8E23] bg-transparent"
-								{...buttonPress}
-							>
-								<Text className="text-[#6B8E23] font-montserrat-semibold">
-									Generate Meal Plan
-								</Text>
-							</Button>
-						)}
+						<Button
+							onPress={handleGenerateNewPlan}
+							variant="outline"
+							className="border-[#6B8E23] bg-transparent"
+							{...buttonPress}
+						>
+							<Text className="text-[#6B8E23] font-montserrat-semibold">
+								Generate Meal Plan
+							</Text>
+						</Button>
 					</View>
 				)}
 
 				{/* Enhanced Action Buttons */}
-				{selectedWeek && (
+				{selectedWeek && displayMeals.length > 0 && (
 					<View className="px-4 flex-1 gap-4 mt-6">
-						{/* Edit meals button - for current and future weeks */}
-						{selectedWeek.status !== "past" && (
-							<Button
-								variant="outline"
-								accessibilityRole="button"
-								accessibilityLabel="Edit meals"
-								accessibilityHint="Edit your meal plan and adjust servings"
-								className="border-2"
-								onPress={handleEditMeals}
-								{...buttonPress}
-							>
-								<Text className="uppercase">Change meals</Text>
-							</Button>
-						)}
+						{/* Edit meals button */}
+						<Button
+							variant="outline"
+							accessibilityRole="button"
+							accessibilityLabel="Edit meals"
+							accessibilityHint="Edit your meal plan and adjust servings"
+							className="border-2"
+							onPress={handleEditMeals}
+							{...buttonPress}
+						>
+							<Text className="uppercase">Change meals</Text>
+						</Button>
+
+						{/* Regenerate button */}
+						<Button
+							variant="outline"
+							accessibilityRole="button"
+							accessibilityLabel="Regenerate meal plan"
+							accessibilityHint="Generate a new meal plan for this week"
+							className="border-2"
+							onPress={handleGenerateNewPlan}
+							{...buttonPress}
+						>
+							<View className="flex-row items-center">
+								<Ionicons
+									name="refresh"
+									size={16}
+									color="#25551b"
+									className="mr-2"
+								/>
+								<Text className="uppercase">Regenerate Plan</Text>
+							</View>
+						</Button>
 
 						{/* Add to cart button - only for current week */}
-						{selectedWeek.is_current_week && displayMeals.length > 0 && (
+						{selectedWeek.is_current_week && (
 							<Button
 								variant="default"
 								accessibilityRole="button"
@@ -451,7 +500,7 @@ export const MealPlanSection = () => {
 								accessibilityHint="Add ingredients for the selected meals to your cart"
 								{...buttonPress}
 							>
-								<Text>Confirm</Text>
+								<Text>Confirm & Add to Cart</Text>
 							</Button>
 						)}
 					</View>

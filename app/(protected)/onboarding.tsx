@@ -246,7 +246,7 @@ export default function OnboardingScreen() {
 	const {
 		preferences: userPreferences,
 		refreshPreferences,
-		updateAllPreferences,
+		updatePreferences,
 	} = useUserPreferences();
 	const { tags } = useReferenceData();
 	const [currentStep, setCurrentStep] = useState(0);
@@ -308,7 +308,6 @@ export default function OnboardingScreen() {
 			setIsLoading(true);
 			setShowSuccess(true);
 
-			// Update profile (stays the same)
 			const profileUpdates: Partial<ProfileUpdate> = {
 				display_name: formData.name || null,
 				country: formData.country || null,
@@ -319,18 +318,14 @@ export default function OnboardingScreen() {
 
 			await updateProfile(profileUpdates);
 
-			// Use the new updateAllPreferences method
-			await updateAllPreferences({
+			await updatePreferences({
 				meals_per_week: formData.mealsPerWeek,
 				serves_per_meal: formData.servesPerMeal,
 				user_goals: formData.userGoals,
 				user_preference_tags: formData.userPreferenceTags,
 			});
 
-			// Refresh preferences to ensure we have latest data
 			await refreshPreferences();
-
-			// Note: refreshAll is no longer needed as each provider manages its own data
 		} catch (error) {
 			console.error("Error completing onboarding:", error);
 			setShowSuccess(false);
