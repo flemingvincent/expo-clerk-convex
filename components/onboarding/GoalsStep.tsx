@@ -332,11 +332,8 @@ const GoalsStep: React.FC<GoalsStepProps> = ({
 								<Text className="text-lg font-semibold text-primary">
 									{goal.name}
 								</Text>
-								<Text className="text-xs text-primary/60 mt-0.5">
-									{goal.description}
-								</Text>
 								{index < 4 && (
-									<Text className="text-xs text-primary/40 mt-0.5 font-medium">
+									<Text className="text-md text-primary/60 mt-0.5 font-medium">
 										{getPriorityLabel(index)}
 									</Text>
 								)}

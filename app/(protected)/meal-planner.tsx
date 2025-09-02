@@ -10,6 +10,7 @@ import { useMealPlan } from "@/context/meal-plan-provider";
 import { useWeeks } from "@/context/week-data-provider";
 import { useRecipes } from "@/context/recipe-data-provider";
 import { MealPlanItem, RecipeWithTags } from "@/types/database";
+import { MealCard } from "@/components/home-screen/MealCard";
 
 export default function MealPlannerScreen() {
 	const router = useRouter();
@@ -26,7 +27,7 @@ export default function MealPlannerScreen() {
 		addMealToPlan,
 		removeMealFromPlan,
 		updateMealServings,
-        regenerateMealPlan
+		regenerateMealPlan,
 	} = useMealPlan();
 
 	const { getWeekById } = useWeeks();
@@ -42,12 +43,13 @@ export default function MealPlannerScreen() {
 	const selectedWeek = weekId ? getWeekById(weekId as string) : null;
 	const availableRecipes = getAvailableRecipes();
 
-	const [selectedMeals, setSelectedMeals] = useState<MealPlanItem[]>(currentMealPlan);
+	const [selectedMeals, setSelectedMeals] =
+		useState<MealPlanItem[]>(currentMealPlan);
 	const [hasChanges, setHasChanges] = useState(false);
 
 	useEffect(() => {
 		if (weekId) {
- 			loadMealPlanForWeek(weekId as string).then(() => {
+			loadMealPlanForWeek(weekId as string).then(() => {
 				if (__DEV__) {
 					console.log("Meal plan ready for week:", weekId);
 				}
@@ -55,7 +57,7 @@ export default function MealPlannerScreen() {
 		}
 	}, [weekId]);
 
-    useEffect(() => {
+	useEffect(() => {
 		setSelectedMeals(currentMealPlan);
 		// Reset hasChanges when we get a fresh meal plan
 		setHasChanges(false);
@@ -77,7 +79,7 @@ export default function MealPlannerScreen() {
 			// Use the provider method to save
 			await saveMealPlanForWeek(weekId as string, selectedMeals);
 			console.log("Saved changes for week:", weekId);
-            setHasChanges(false);
+			setHasChanges(false);
 			router.back();
 		} catch (error) {
 			console.error("Error saving meal plan:", error);
@@ -85,9 +87,9 @@ export default function MealPlannerScreen() {
 		}
 	};
 
-    const handleRegeneratePlan = async () => {
+	const handleRegeneratePlan = async () => {
 		if (!weekId) return;
-		
+
 		try {
 			// This will regenerate and auto-save
 			await regenerateMealPlan(weekId as string);
@@ -178,18 +180,18 @@ export default function MealPlannerScreen() {
 
 	return (
 		<SafeAreaView className="flex-1 bg-white">
-			<View className="bg-white border-b border-gray-200">
+			<View className="bg-white border-b-2 border-b-[#EBEBEB]">
 				<View className="flex-row items-center justify-between px-4 py-3">
 					<TouchableOpacity
 						onPress={handleBack}
 						className="p-2"
 						{...buttonPress}
 					>
-						<Ionicons name="arrow-back" size={24} color="#374151" />
+						<Ionicons name="arrow-back" size={24} color="#1f2937" />
 					</TouchableOpacity>
 
-					<Text className="text-lg font-montserrat-bold text-gray-900">
-						Swap Meals
+					<Text className="text-lg font-montserrat-bold text-gray-800 uppercase tracking-wide">
+						Edit: {selectedWeek?.displayTitle || "Week"}
 					</Text>
 
 					<TouchableOpacity
@@ -199,44 +201,104 @@ export default function MealPlannerScreen() {
 						{...buttonPress}
 					>
 						<Text
-							className={`font-montserrat-semibold ${
-								hasChanges ? "text-primary" : "text-gray-400"
-							}`}
+							className="font-montserrat-semibold uppercase text-gray-800"
 						>
 							Save
 						</Text>
 					</TouchableOpacity>
 				</View>
 
-				<View className="px-4 pb-4">
-					<View
-						style={{
-							backgroundColor: "#CCEA1F",
-							borderColor: "#25551b",
-							shadowColor: "#25551b",
-						}}
-						className="py-4 px-4 border-2 rounded-xl shadow-[0px_2px_0px_0px]"
-					>
-						<View className="flex-row items-center justify-between">
-							<View>
-								<Text
-									className="text-xs font-montserrat-bold mb-1"
-									style={{ color: "#25551b" }}
-								>
-									{selectedWeek?.displayTitle || "Selected Week"}
-								</Text>
-								<Text
-									className="text-lg font-montserrat-semibold"
-									style={{ color: "#25551b" }}
-								>
-									{selectedWeek?.display_range || displayRange}
-								</Text>
+				<View className="flex-row justify-center items-center px-12 pb-3">
+					<View className="flex-1 flex-row justify-between items-center">
+						<View className="items-center">
+							<View
+								style={{
+									width: 32,
+									height: 32,
+									borderRadius: 8,
+									borderWidth: 2,
+									borderColor: "#25551b",
+									backgroundColor: "#CCEA1F",
+									alignItems: "center",
+									justifyContent: "center",
+								}}
+							>
+								<Ionicons name="calendar-outline" size={16} color="#25551b" />
 							</View>
-							<View className="bg-[#25551b]/10 px-3 py-1 rounded-lg">
-								<Text className="text-[#25551b] font-montserrat-semibold">
-									{selectedMeals.length} meals
-								</Text>
+							<Text
+								className="text-xs mt-1 font-montserrat-bold uppercase"
+								style={{ color: "#25551b" }}
+							>
+								Plan
+							</Text>
+						</View>
+
+						<View
+							style={{
+								height: 3,
+								backgroundColor: "#EBEBEB",
+								flex: 1,
+								marginHorizontal: 8,
+								marginTop: -12,
+								borderRadius: 2,
+							}}
+						/>
+
+						<View className="items-center">
+							<View
+								style={{
+									width: 28,
+									height: 28,
+									borderRadius: 7,
+									borderWidth: 2,
+									borderColor: "#EBEBEB",
+									backgroundColor: "#FFFFFF",
+									alignItems: "center",
+									justifyContent: "center",
+								}}
+							>
+								<Ionicons name="cart-outline" size={14} color="#9CA3AF" />
 							</View>
+							<Text
+								className="text-xs mt-1 font-montserrat-semibold uppercase"
+								style={{ color: "#9CA3AF" }}
+							>
+								Shop
+							</Text>
+						</View>
+
+						<View
+							style={{
+								height: 3,
+								backgroundColor: "#EBEBEB",
+								flex: 1,
+								marginHorizontal: 8,
+								marginTop: -12,
+								borderRadius: 2,
+							}}
+						/>
+
+						<View className="items-center">
+							<View
+								style={{
+									width: 28,
+									height: 28,
+									borderRadius: 7,
+									borderWidth: 2,
+									borderColor: "#EBEBEB",
+									backgroundColor: "#FFFFFF",
+									alignItems: "center",
+									justifyContent: "center",
+								}}
+							>
+								<Ionicons name="star-outline" size={14} color="#9CA3AF" />
+							</View>
+							<Text
+								className="text-xs mt-1 font-montserrat-semibold uppercase"
+								style={{ color: "#9CA3AF" }}
+							>
+								Review
+							</Text>
 						</View>
 					</View>
 				</View>
@@ -251,14 +313,16 @@ export default function MealPlannerScreen() {
 					{selectedMeals.length > 0 ? (
 						<View className="flex flex-col gap-2">
 							{selectedMeals.map((meal) => (
-								<EditMealCard
-									key={meal.id}
-									meal={meal}
-									showActions={true}
-									onSwap={handleSwapMeal}
-									onRemove={handleRemoveMeal}
-								/>
-							))}
+                                <MealCard
+                                    key={meal.id}
+                                    recipe={meal}
+                                    editable={true}
+                                    isInPlan={true}
+                                    onRemove={handleRemoveMeal}
+                                    onServingsChange={handleServingsChange}
+                                    onPress={() => router.push(`/recipe/${meal.recipe.id}`)}
+                                />
+                            ))}
 						</View>
 					) : (
 						<View className="bg-gray-50 rounded-xl p-6 items-center">
@@ -282,30 +346,27 @@ export default function MealPlannerScreen() {
 						Available Recipes ({availableRecipes.length})
 					</Text>
 
-					{availableRecipes.length > 0 ? (
-						<View className="flex flex-col gap-2">
-							{availableRecipes.map((recipe) => (
-								<TouchableOpacity
-									key={recipe.id}
-									onPress={() => handleAddMeal(recipe)}
-									{...buttonPress}
-								>
-									{/* Render recipe card here */}
-									{/* Note: EditMealCard expects a meal, not a recipe */}
-								</TouchableOpacity>
-							))}
-						</View>
-					) : (
-						<View className="bg-gray-50 rounded-xl p-6 items-center">
-							<Ionicons name="checkmark-circle" size={48} color="#10B981" />
-							<Text className="text-gray-600 font-montserrat-semibold mt-3">
-								All recipes added!
-							</Text>
-							<Text className="text-gray-500 text-sm mt-1 text-center">
-								You've selected all available recipes for this week
-							</Text>
-						</View>
-					)}
+					<ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                        {availableRecipes.map((recipe) => {
+                            const tempMeal: MealPlanItem = {
+                                id: recipe.id,
+                                recipe: recipe,
+                                servings: 1
+                            };
+                            
+                            return (
+                                <MealCard
+                                    key={recipe.id}
+                                    recipe={tempMeal}
+                                    editable={true}
+                                    isInPlan={false}
+                                    onAdd={() => handleAddMeal(recipe)}
+                                    width={350}
+                                    onPress={() => router.push(`/recipe/${recipe.id}`)}
+                                />
+                            );
+                        })}
+                    </ScrollView>
 				</View>
 			</ScrollView>
 

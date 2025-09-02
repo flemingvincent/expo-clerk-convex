@@ -10,6 +10,8 @@ import { MealPlanItem } from "@/types/database";
 import { useMealPlan } from "@/context/meal-plan-provider";
 import { useWeeks } from "@/context/week-data-provider";
 import * as Haptics from "expo-haptics";
+import { useUserPreferences } from "@/context/user-preferences-provider";
+import { useAuth } from "@/context/supabase-provider";
 
 export const MealPlanSection = () => {
 	const router = useRouter();
@@ -18,19 +20,21 @@ export const MealPlanSection = () => {
 		currentMealPlan,
 		loading: mealPlanLoading,
 		error: mealPlanError,
-		updateMealServings,
 		loadMealPlanForWeek,
 		regenerateMealPlan,
 		dependenciesReady,
 	} = useMealPlan();
 
 	const { weeks, currentWeek, getWeekById, getWeeksRange } = useWeeks();
+	const { profile } = useAuth();
+	const userName = profile?.display_name ?? "there";
 
 	const loading = mealPlanLoading;
 	const error = mealPlanError;
 
 	const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null);
 	const [isLoadingWeekPlan, setIsLoadingWeekPlan] = useState(false);
+	const [isTransitioningWeek, setIsTransitioningWeek] = useState(false);
 
 	useEffect(() => {
 		if (currentWeek && !selectedWeekId) {
@@ -51,6 +55,7 @@ export const MealPlanSection = () => {
 				console.error("Error loading meal plan:", error);
 			} finally {
 				setIsLoadingWeekPlan(false);
+				setIsTransitioningWeek(false); // Clear transition state
 			}
 		})();
 	}, [selectedWeekId, dependenciesReady]);
@@ -84,6 +89,7 @@ export const MealPlanSection = () => {
 		if (currentIndex > 0) {
 			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 			const previousWeek = displayWeeks[currentIndex - 1];
+			setIsTransitioningWeek(true);
 			handleWeekPress(previousWeek.id);
 		}
 	};
@@ -95,6 +101,7 @@ export const MealPlanSection = () => {
 		if (currentIndex < displayWeeks.length - 1) {
 			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 			const nextWeek = displayWeeks[currentIndex + 1];
+			setIsTransitioningWeek(true);
 			handleWeekPress(nextWeek.id);
 		}
 	};
@@ -138,6 +145,7 @@ export const MealPlanSection = () => {
 		const hasPrevious = currentIndex > 0;
 		const hasNext = currentIndex < displayWeeks.length - 1;
 
+		// Determine step states based on week
 		const getStepStates = () => {
 			if (!selectedWeek)
 				return {
@@ -242,24 +250,43 @@ export const MealPlanSection = () => {
 				<View className="flex-row items-center justify-between px-4">
 					<TouchableOpacity
 						onPress={handlePreviousWeekClick}
-						disabled={!hasPrevious}
+						disabled={!hasPrevious || isTransitioningWeek}
 						style={{
-							opacity: hasPrevious ? 1 : 0.3,
+							opacity: !hasPrevious || isTransitioningWeek ? 0.3 : 1,
 						}}
 						{...buttonPress}
 					>
 						<Ionicons name="chevron-back" size={24} color="#1f2937" />
 					</TouchableOpacity>
 
-					<Text className="text-xl text-gray-800 uppercase tracking-wide font-montserrat-bold">
-						{selectedWeek?.displayTitle}
-					</Text>
+					<View className="flex-row items-center">
+						<Text className="text-xl text-gray-800 uppercase tracking-wide font-montserrat-bold">
+							{selectedWeek?.displayTitle}
+						</Text>
+						{isTransitioningWeek && (
+							<View className="ml-2">
+								<View
+									style={{
+										width: 16,
+										height: 16,
+										borderRadius: 8,
+										borderWidth: 2,
+										borderColor: "#25551b",
+										borderTopColor: "transparent",
+										borderRightColor: "transparent",
+										transform: [{ rotate: "45deg" }],
+									}}
+									className="animate-spin"
+								/>
+							</View>
+						)}
+					</View>
 
 					<TouchableOpacity
 						onPress={handleNextWeekClick}
-						disabled={!hasNext}
+						disabled={!hasNext || isTransitioningWeek}
 						style={{
-							opacity: hasNext ? 1 : 0.3,
+							opacity: !hasNext || isTransitioningWeek ? 0.3 : 1,
 						}}
 						{...buttonPress}
 					>
@@ -268,42 +295,63 @@ export const MealPlanSection = () => {
 				</View>
 
 				<View className="flex-row justify-center items-center px-12 pt-3">
-					<View className="flex-1 flex-row justify-between items-center">
-						{/* Plan Step */}
-						{renderStep("Plan", "calendar-outline", stepStates.plan)}
-
-						{/* Connector Line */}
-						<View
-							style={{
-								height: 3,
-								backgroundColor:
-									stepStates.plan === "complete" ? "#25551b" : "#EBEBEB",
-								flex: 1,
-								marginHorizontal: 8,
-								marginTop: -12,
-								borderRadius: 2,
-							}}
-						/>
-
-						{/* Shop Step */}
-						{renderStep("Shop", "cart-outline", stepStates.shop)}
-
-						{/* Connector Line */}
-						<View
-							style={{
-								height: 3,
-								backgroundColor:
-									stepStates.shop === "complete" ? "#25551b" : "#EBEBEB",
-								flex: 1,
-								marginHorizontal: 8,
-								marginTop: -12,
-								borderRadius: 2,
-							}}
-						/>
-
-						{/* Review Step */}
-						{renderStep("Review", "star-outline", stepStates.review)}
-					</View>
+					{isTransitioningWeek ? (
+						// Loading state for progress bar
+						<View className="flex-1 flex-row justify-between items-center opacity-50">
+							{renderStep("Plan", "calendar-outline", stepStates.plan)}
+							<View
+								style={{
+									height: 3,
+									backgroundColor: "#EBEBEB",
+									flex: 1,
+									marginHorizontal: 8,
+									marginTop: -12,
+									borderRadius: 2,
+								}}
+							/>
+							{renderStep("Shop", "cart-outline", stepStates.shop)}
+							<View
+								style={{
+									height: 3,
+									backgroundColor: "#EBEBEB",
+									flex: 1,
+									marginHorizontal: 8,
+									marginTop: -12,
+									borderRadius: 2,
+								}}
+							/>
+							{renderStep("Review", "star-outline", stepStates.review)}
+						</View>
+					) : (
+						// Normal state
+						<View className="flex-1 flex-row justify-between items-center">
+							{renderStep("Plan", "calendar-outline", stepStates.plan)}
+							<View
+								style={{
+									height: 3,
+									backgroundColor:
+										stepStates.plan === "complete" ? "#25551b" : "#EBEBEB",
+									flex: 1,
+									marginHorizontal: 8,
+									marginTop: -12,
+									borderRadius: 2,
+								}}
+							/>
+							{renderStep("Shop", "cart-outline", stepStates.shop)}
+							<View
+								style={{
+									height: 3,
+									backgroundColor:
+										stepStates.shop === "complete" ? "#25551b" : "#EBEBEB",
+									flex: 1,
+									marginHorizontal: 8,
+									marginTop: -12,
+									borderRadius: 2,
+								}}
+							/>
+							{renderStep("Review", "star-outline", stepStates.review)}
+						</View>
+					)}
 				</View>
 			</View>
 		);
@@ -313,6 +361,7 @@ export const MealPlanSection = () => {
 		selectedWeek,
 		handlePreviousWeekClick,
 		handleNextWeekClick,
+		isTransitioningWeek, // Add this dependency
 	]);
 
 	if ((!dependenciesReady || loading) && !isLoadingWeekPlan) {
@@ -326,7 +375,7 @@ export const MealPlanSection = () => {
 				>
 					<View className="px-6 pb-4">
 						<Text className="text-2xl font-montserrat-bold text-gray-800">
-							Hi Patrick!
+							Hi {userName}!
 						</Text>
 						<Text className="text-lg font-montserrat-semibold text-gray-500">
 							Loading your personalized meal plan...
@@ -392,50 +441,78 @@ export const MealPlanSection = () => {
 				>
 					<View className="px-6 pb-4">
 						<Text className="text-2xl font-montserrat-bold text-gray-800">
-							Hi Patrick!
+							Hi {userName}!
 						</Text>
-						<Text className="text-lg font-montserrat-semibold text-red-600">
-							Something went wrong loading your meals.
+						<Text className="text-lg font-montserrat-semibold text-gray-600">
+							We couldn't load your meal plan.
 						</Text>
 					</View>
 
-					<View
-						style={{
-							backgroundColor: "#FFE0D1",
-							borderColor: "#FF6525",
-						}}
-						className="mx-4 mb-6 border-2 rounded-2xl p-6 items-center"
-					>
-						<View className="bg-[#FF6525] w-16 h-16 rounded-xl items-center justify-center mb-4">
-							<Ionicons name="alert-circle" size={32} color="#FFF" />
-						</View>
-
-						<Text className="text-[#FF6525] text-xl font-montserrat-bold tracking-wide uppercase mb-2 text-center">
-							Can't load your meal plan
-						</Text>
-
-						<Text className="text-[#FF6525]/80 text-center mb-4 font-montserrat-semibold">
-							{error?.message || "Please try again"}
-						</Text>
-
-						<Button
-							onPress={handleGenerateNewPlan}
-							variant="outline"
-							className="border-[#FF6525] bg-transparent"
-							{...buttonPress}
+					<View className="px-4">
+						<View
+							style={{
+								backgroundColor: "#FFFFFF",
+								borderWidth: 2,
+								borderColor: "#EBEBEB",
+								borderBottomWidth: 6,
+								borderBottomColor: "#EBEBEB",
+							}}
+							className="rounded-2xl overflow-hidden"
 						>
-							<View className="flex-row items-center">
-								<Ionicons
-									name="sync"
-									size={16}
-									color="#FF6525"
-									className="mr-2"
-								/>
-								<Text className="text-[#FF6525] font-montserrat-bold tracking-wide uppercase">
-									Try Again
+							<View className="p-6 items-center">
+								{/* Error icon with your style */}
+								<View
+									style={{
+										width: 64,
+										height: 64,
+										borderWidth: 2,
+										borderColor: "#dc2626",
+										backgroundColor: "#fef2f2",
+									}}
+									className="rounded-xl items-center justify-center mb-4"
+								>
+									<Ionicons name="alert-circle" size={28} color="#dc2626" />
+								</View>
+
+								{/* Title */}
+								<Text className="text-xl font-montserrat-bold text-gray-800 uppercase tracking-wide text-center mb-2">
+									Something Went Wrong
 								</Text>
+
+								{/* Error message */}
+								<Text className="text-sm font-montserrat-medium text-gray-600 text-center mb-6 px-4">
+									{error?.message ||
+										"We couldn't load your meals. Please try again."}
+								</Text>
+
+								{/* Action buttons */}
+								<View className="w-full gap-3">
+									<Button
+										variant="default"
+										onPress={handleGenerateNewPlan}
+										className="w-full"
+										{...buttonPress}
+									>
+										<View className="flex-row items-center gap-2">
+											<Ionicons name="refresh" size={18} color="#25551b" />
+											<Text className="text-[#25551b] font-montserrat-bold uppercase tracking-wide">
+												Try Again
+											</Text>
+										</View>
+									</Button>
+
+									<Button
+										variant="outline"
+										className="w-full border-2"
+										{...buttonPress}
+									>
+										<Text className="font-montserrat-semibold uppercase tracking-wide">
+											Browse Recipes Instead
+										</Text>
+									</Button>
+								</View>
 							</View>
-						</Button>
+						</View>
 					</View>
 				</ScrollView>
 			</View>
@@ -454,22 +531,159 @@ export const MealPlanSection = () => {
 				<View className="px-6 pb-4">
 					<View>
 						<Text className="text-2xl font-montserrat-bold text-gray-800">
-							Hi Patrick!
+							Hi {userName}!
 						</Text>
 						<Text className="text-lg font-montserrat-semibold text-gray-800">
-							We picked {displayMeals.length} meals that match your{" "}
-							<Text
-								className="text-xl font-montserrat-semibold text-gray-800 underline"
-								onPress={() => router.push("/profile")}
-							>
-								preferences
-							</Text>
-							.
+							{isTransitioningWeek ? (
+								"Loading meals for " +
+								selectedWeek?.displayTitle?.toLowerCase() +
+								"..."
+							) : (
+								<>
+									{(() => {
+										if (!selectedWeek) {
+											return "Loading your personalized meal plan...";
+										}
+
+										// Past week (review)
+										if (selectedWeek.weekOffset === -1) {
+											if (displayMeals.length > 0) {
+												return "Please review your previous meals. Reviewing meals helps us better recommend meals for you in the future.";
+											} else {
+												return "No meals to review from last week.";
+											}
+										}
+
+										// Current week
+										if (selectedWeek.is_current_week) {
+											if (displayMeals.length > 0) {
+												return (
+													<>
+														We picked {displayMeals.length} meals that match
+														your{" "}
+														<Text
+															className="text-xl font-montserrat-semibold text-gray-800 underline"
+															onPress={() => router.push("/profile")}
+														>
+															preferences
+														</Text>
+														.
+													</>
+												);
+											} else {
+												return "Let's plan your meals for this week!";
+											}
+										}
+
+										// Future weeks
+										if (selectedWeek.weekOffset >= 1) {
+											if (displayMeals.length > 0) {
+												return `Planning ahead! We've selected ${displayMeals.length} meals for ${selectedWeek.displayTitle?.toLowerCase()}. You can adjust these anytime.`;
+											} else {
+												return `Ready to plan meals for ${selectedWeek.displayTitle?.toLowerCase()}? Generate a personalized meal plan when you're ready.`;
+											}
+										}
+
+										return "Loading your meal plan...";
+									})()}
+								</>
+							)}
 						</Text>
 					</View>
 				</View>
 
-				{displayMeals.length > 0 ? (
+				{isTransitioningWeek ? (
+					// Loading state for meal cards
+					<ScrollView
+						horizontal
+						showsHorizontalScrollIndicator={false}
+						contentContainerStyle={{
+							paddingHorizontal: 16,
+							paddingRight: 32,
+							paddingBottom: 4,
+						}}
+						scrollEnabled={false}
+					>
+						{[0, 1, 2].map((index) => (
+							<View
+								key={`loading-${index}`}
+								style={{
+									width: 320,
+									height: 380,
+									backgroundColor: "#FFFFFF",
+									borderWidth: 2,
+									borderColor: "#EBEBEB",
+									borderBottomWidth: 6,
+									borderBottomColor: "#EBEBEB",
+								}}
+								className="mr-4 rounded-2xl overflow-hidden"
+							>
+								{/* Loading card image skeleton */}
+								<View className="p-2">
+									<View
+										className="aspect-[4/3] w-full rounded-xl"
+										style={{
+											backgroundColor: "#F3F4F6",
+										}}
+									>
+										<View className="flex-1 items-center justify-center">
+											<View
+												style={{
+													width: 40,
+													height: 40,
+													borderRadius: 10,
+													backgroundColor: "#E5E7EB",
+												}}
+											/>
+										</View>
+									</View>
+								</View>
+
+								{/* Loading card content skeleton */}
+								<View className="flex-1 p-4">
+									<View className="flex-row gap-2 mb-3">
+										<View
+											style={{
+												width: 60,
+												height: 24,
+												borderRadius: 12,
+												backgroundColor: "#F3F4F6",
+											}}
+										/>
+									</View>
+									<View>
+										<View
+											style={{
+												width: "80%",
+												height: 20,
+												borderRadius: 4,
+												backgroundColor: "#F3F4F6",
+												marginBottom: 8,
+											}}
+										/>
+										<View
+											style={{
+												width: "100%",
+												height: 16,
+												borderRadius: 4,
+												backgroundColor: "#F9FAFB",
+												marginBottom: 4,
+											}}
+										/>
+										<View
+											style={{
+												width: "70%",
+												height: 16,
+												borderRadius: 4,
+												backgroundColor: "#F9FAFB",
+											}}
+										/>
+									</View>
+								</View>
+							</View>
+						))}
+					</ScrollView>
+				) : displayMeals.length > 0 ? (
 					<ScrollView
 						horizontal
 						showsHorizontalScrollIndicator={false}
@@ -486,79 +700,85 @@ export const MealPlanSection = () => {
 							<MealCard
 								key={meal.id}
 								recipe={meal}
+								width={320}
 								onPress={() => handleMealPress(meal)}
 							/>
 						))}
 					</ScrollView>
 				) : (
-					<View
-						style={{
-							backgroundColor: "#EBF3E7",
-							borderColor: "#6B8E23",
-						}}
-						className="mx-4 border-2 rounded-2xl p-6 items-center"
-					>
-						<View className="bg-[#6B8E23] w-16 h-16 rounded-xl items-center justify-center mb-4">
-							<Ionicons name="calendar-outline" size={32} color="#FFF" />
-						</View>
-						<Text className="text-[#6B8E23] text-xl font-montserrat-bold tracking-wide uppercase mb-2 text-center">
-							{selectedWeek?.is_current_week
-								? "No meals planned"
-								: `No meals this week`}
-						</Text>
-						<Text className="text-[#6B8E23]/80 text-center font-montserrat-semibold mb-4">
-							{selectedWeek?.is_current_week
-								? "Let's get you some personalized meal suggestions!"
-								: "Generate meals that match your preferences"}
-						</Text>
-
-						<Button
-							onPress={handleGenerateNewPlan}
-							variant="outline"
-							className="border-[#6B8E23] bg-transparent"
-							{...buttonPress}
+					<View className="px-4">
+						<View
+							style={{
+								backgroundColor: "#FFFFFF",
+								borderWidth: 2,
+								borderColor: "#EBEBEB",
+								borderBottomWidth: 6,
+								borderBottomColor: "#EBEBEB",
+							}}
+							className="rounded-2xl overflow-hidden"
 						>
-							<Text className="text-[#6B8E23] font-montserrat-semibold">
-								Generate Meal Plan
-							</Text>
-						</Button>
+							<View className="p-6 items-center">
+								{/* Icon with your style */}
+								<View
+									style={{
+										width: 64,
+										height: 64,
+										borderWidth: 2,
+										borderColor: "#25551b",
+										backgroundColor: "#CCEA1F",
+									}}
+									className="rounded-xl items-center justify-center mb-4"
+								>
+									<Ionicons name="restaurant" size={28} color="#25551b" />
+								</View>
+
+								{/* Title */}
+								<Text className="text-xl font-montserrat-bold text-gray-800 uppercase tracking-wide text-center mb-2">
+									{selectedWeek?.is_current_week
+										? "Ready to Plan"
+										: `Plan for ${selectedWeek?.displayTitle}`}
+								</Text>
+
+								{/* Description */}
+								<Text className="text-sm font-montserrat-medium text-gray-600 text-center mb-6 px-4">
+									{selectedWeek?.is_current_week
+										? "Let's create your personalized meal plan for this week"
+										: "Generate meals that match your taste preferences"}
+								</Text>
+
+								{/* Action buttons */}
+								<View className="w-full gap-3">
+									<Button
+										variant="default"
+										onPress={handleGenerateNewPlan}
+										className="w-full"
+										{...buttonPress}
+									>
+										<View className="flex-row items-center gap-2">
+											<Ionicons name="sparkles" size={18} color="#25551b" />
+											<Text className="text-[#25551b] font-montserrat-bold uppercase tracking-wide">
+												Generate Meal Plan
+											</Text>
+										</View>
+									</Button>
+
+									<Button
+										variant="outline"
+										className="w-full border-2"
+										{...buttonPress}
+									>
+										<Text className="font-montserrat-semibold uppercase tracking-wide">
+											Browse Recipes
+										</Text>
+									</Button>
+								</View>
+							</View>
+						</View>
 					</View>
 				)}
 
-				{selectedWeek && displayMeals.length > 0 && (
+				{selectedWeek && displayMeals.length > 0 && !isTransitioningWeek && (
 					<View className="px-4 flex-1 gap-4 mt-2">
-						{selectedWeek.weekOffset >= 0 && (
-							<View className="flex-row items-center justify-between gap-2">
-								<View className="flex-1">
-									<Button
-										variant="outline"
-										accessibilityRole="button"
-										accessibilityLabel="Edit meals"
-										accessibilityHint="Edit your meal plan and adjust servings"
-										className="border-2"
-										onPress={handleEditMeals}
-										{...buttonPress}
-									>
-										<Text className="uppercase">Change meals</Text>
-									</Button>
-								</View>
-
-								<Button
-									variant="outline"
-									accessibilityRole="button"
-									accessibilityLabel="Regenerate meal plan"
-									accessibilityHint="Generate a new meal plan for this week"
-									className="border-2"
-									onPress={handleGenerateNewPlan}
-									{...buttonPress}
-								>
-									<View className="flex-row items-center">
-										<Ionicons name="sync" size={24} color="#25551b" />
-									</View>
-								</Button>
-							</View>
-						)}
-
 						{selectedWeek.is_current_week && (
 							<Button
 								variant="default"
@@ -569,6 +789,22 @@ export const MealPlanSection = () => {
 							>
 								<Text>Checkout with grocer</Text>
 							</Button>
+						)}
+                        
+                        {selectedWeek.weekOffset >= 0 && (
+                            <View className="flex-1">
+                                <Button
+                                    variant="outline"
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Edit meals"
+                                    accessibilityHint="Edit your meal plan and adjust servings"
+                                    className="border-2"
+                                    onPress={handleEditMeals}
+                                    {...buttonPress}
+                                >
+                                    <Text className="uppercase">Change meals</Text>
+                                </Button>
+                            </View>
 						)}
 
 						{selectedWeek.weekOffset === -1 && (
