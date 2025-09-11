@@ -46,6 +46,7 @@ export default function MealPlannerScreen() {
 	const [selectedMeals, setSelectedMeals] =
 		useState<MealPlanItem[]>(currentMealPlan);
 	const [hasChanges, setHasChanges] = useState(false);
+	const [isCollapsed, setIsCollapsed] = useState(false);
 
 	useEffect(() => {
 		if (weekId) {
@@ -200,9 +201,7 @@ export default function MealPlannerScreen() {
 						className="p-2"
 						{...buttonPress}
 					>
-						<Text
-							className="font-montserrat-semibold uppercase text-gray-800"
-						>
+						<Text className="font-montserrat-semibold uppercase text-gray-800">
 							Save
 						</Text>
 					</TouchableOpacity>
@@ -306,23 +305,41 @@ export default function MealPlannerScreen() {
 
 			<ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
 				<View className="px-4 pt-4">
-					<Text className="text-lg font-montserrat-bold text-gray-900 mb-3">
-						Your Selected Meals ({selectedMeals.length})
-					</Text>
+					<View className="flex-row items-center justify-between mb-3">
+						<Text className="text-lg font-montserrat-bold text-gray-900">
+							Your Selected Meals ({selectedMeals.length})
+						</Text>
+
+						<TouchableOpacity
+							onPress={() => setIsCollapsed(!isCollapsed)}
+							className="flex-row items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100"
+							{...buttonPress}
+						>
+							<Ionicons
+								name={isCollapsed ? "albums-outline" : "list-outline"}
+								size={18}
+								color="#6B7280"
+							/>
+							<Text className="text-sm font-montserrat-semibold text-gray-600">
+								{isCollapsed ? "Card View" : "List View"}
+							</Text>
+						</TouchableOpacity>
+					</View>
 
 					{selectedMeals.length > 0 ? (
 						<View className="flex flex-col gap-2">
 							{selectedMeals.map((meal) => (
-                                <MealCard
-                                    key={meal.id}
-                                    recipe={meal}
-                                    editable={true}
-                                    isInPlan={true}
-                                    onRemove={handleRemoveMeal}
-                                    onServingsChange={handleServingsChange}
-                                    onPress={() => router.push(`/recipe/${meal.recipe.id}`)}
-                                />
-                            ))}
+								<MealCard
+									key={meal.id}
+									recipe={meal}
+									editable={true}
+									isInPlan={true}
+                                    isCollapsed={isCollapsed}
+									onRemove={handleRemoveMeal}
+									onServingsChange={handleServingsChange}
+									onPress={() => router.push(`/recipe/${meal.recipe.id}`)}
+								/>
+							))}
 						</View>
 					) : (
 						<View className="bg-gray-50 rounded-xl p-6 items-center">
@@ -347,26 +364,26 @@ export default function MealPlannerScreen() {
 					</Text>
 
 					<ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        {availableRecipes.map((recipe) => {
-                            const tempMeal: MealPlanItem = {
-                                id: recipe.id,
-                                recipe: recipe,
-                                servings: 1
-                            };
-                            
-                            return (
-                                <MealCard
-                                    key={recipe.id}
-                                    recipe={tempMeal}
-                                    editable={true}
-                                    isInPlan={false}
-                                    onAdd={() => handleAddMeal(recipe)}
-                                    width={350}
-                                    onPress={() => router.push(`/recipe/${recipe.id}`)}
-                                />
-                            );
-                        })}
-                    </ScrollView>
+						{availableRecipes.map((recipe) => {
+							const tempMeal: MealPlanItem = {
+								id: recipe.id,
+								recipe: recipe,
+								servings: 1,
+							};
+
+							return (
+								<MealCard
+									key={recipe.id}
+									recipe={tempMeal}
+									editable={true}
+									isInPlan={false}
+									onAdd={() => handleAddMeal(recipe)}
+									width={350}
+									onPress={() => router.push(`/recipe/${recipe.id}`)}
+								/>
+							);
+						})}
+					</ScrollView>
 				</View>
 			</ScrollView>
 

@@ -646,7 +646,6 @@ export default function RecipeDetail() {
 						{...buttonPress}
 					>
 						<View className="flex-row items-center gap-2">
-							<Ionicons name="calendar" size={18} color="#25551b" />
 							<Text className="text-[#25551b] font-montserrat-bold uppercase tracking-wide">
 								Add to Plan
 							</Text>

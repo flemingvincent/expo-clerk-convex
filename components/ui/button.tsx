@@ -38,7 +38,7 @@ const buttonTextVariants = cva(
 			variant: {
 				default: "text-primary font-montserrat-bold tracking-wide uppercase",
 				destructive: "text-destructive-foreground font-montserrat-bold tracking-wide uppercase",
-				outline: "text-foreground font-montserrat-semibold tracking-wide uppercase",
+				outline: "text-gray-700 font-montserrat-semibold tracking-wide uppercase",
 				secondary: "text-white font-montserrat-semibold tracking-wide uppercase",
 				funky: "text-primary font-montserrat-bold tracking-wide uppercase",
 				ghost: "text-foreground font-montserrat-medium",
