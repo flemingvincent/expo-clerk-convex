@@ -1,58 +1,78 @@
+// Updated MealCard component with add/remove functionality:
+
 import { View, Pressable, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/text";
 import { Image } from "@/components/image";
-import { useAppData } from "@/context/app-data-provider";
 import { getRecipeColorScheme } from "@/lib/colors";
 import { usePressAnimation } from "@/hooks/onPressAnimation";
-import * as Haptics from 'expo-haptics';
+import * as Haptics from "expo-haptics";
 import { MealPlanItem } from "@/types/database";
+import { useReferenceData } from "@/context/reference-data-provider";
+import { Button } from "../ui/button";
 
 interface MealCardProps {
 	recipe: MealPlanItem;
 	onPress?: () => void;
 	onServingsChange?: (mealId: string, servings: number) => void;
+	onRemove?: (mealId: string) => void;
+	onAdd?: (mealId: string) => void;
 	width?: number;
-	variant?: "horizontal" | "vertical";
-	showServingsEditor?: boolean;
-	weekStatus?: 'past' | 'current' | 'future';
+	editable?: boolean;
+	isInPlan?: boolean;
 }
 
 export const MealCard = ({
 	recipe,
 	onPress,
 	onServingsChange,
-	width = 320,
-	variant = "horizontal",
-	showServingsEditor = false,
-	weekStatus = 'current',
+	onRemove,
+	onAdd,
+	width,
+	editable = false,
+	isInPlan = true,
 }: MealCardProps) => {
-	const { tags } = useAppData();
+	const { tags } = useReferenceData();
 	const colors = getRecipeColorScheme(recipe.recipe.tagIds, tags);
-	
+
 	const buttonPress = usePressAnimation({
 		hapticStyle: "Medium",
 		pressDistance: 2,
 	});
 
 	const handlePress = () => {
-		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-		onPress?.();
+		if (onPress) {
+			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+			onPress();
+		}
 	};
 
 	const handleServingsDecrease = () => {
 		if (recipe.servings > 1 && onServingsChange) {
+			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 			onServingsChange(recipe.id, recipe.servings - 1);
 		}
 	};
 
 	const handleServingsIncrease = () => {
 		if (onServingsChange) {
+			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 			onServingsChange(recipe.id, recipe.servings + 1);
 		}
 	};
 
-	const canEditServings = showServingsEditor && (weekStatus === 'current' || weekStatus === 'future');
+	const handleRemove = () => {
+		if (onRemove) {
+			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+			onRemove(recipe.id);
+		}
+	};
+
+	const handleFavourite = () => {
+		if (onAdd) {
+			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+		}
+	};
 
 	return (
 		<Pressable
@@ -60,7 +80,7 @@ export const MealCard = ({
 			accessibilityRole="button"
 			accessibilityLabel={`View ${recipe.recipe.name} meal`}
 			style={{
-				width,
+				width: width ? width : "100%",
 			}}
 			className="mr-4"
 		>
@@ -68,7 +88,7 @@ export const MealCard = ({
 				<View
 					style={{
 						backgroundColor: "#FFFFFF",
-						height: canEditServings ? 420 : 380,
+						height: editable ? 460 : 400,
 						borderWidth: 2,
 						borderColor: "#EBEBEB",
 						borderBottomWidth: pressed ? 2 : 6,
@@ -80,7 +100,7 @@ export const MealCard = ({
 					{/* Recipe Image */}
 					<View className="relative p-2">
 						<View
-							className={`${variant === "horizontal" ? "aspect-[4/3]" : "aspect-square"} w-full overflow-hidden rounded-xl`}
+							className="aspect-[4/3] w-full overflow-hidden rounded-xl"
 							style={{
 								shadowColor: "#000000",
 								shadowOffset: { width: 0, height: 0 },
@@ -98,151 +118,131 @@ export const MealCard = ({
 								className="w-full h-full"
 								contentFit="cover"
 							/>
-							
-							{/* Inner shadow overlay */}
-							<View
-								style={{
-									position: 'absolute',
-									top: 0,
-									left: 0,
-									right: 0,
-									bottom: 0,
-									shadowColor: "#000000",
-									shadowOffset: { width: 0, height: 0 },
-									shadowOpacity: 0.4,
-									shadowRadius: 12,
-									backgroundColor: 'transparent',
-								}}
-								className="rounded-xl"
-								pointerEvents="none"
-							/>
-							
-							{/* Alternative inner shadow using border gradient effect */}
-							<View
-								style={{
-									position: 'absolute',
-									top: 0,
-									left: 0,
-									right: 0,
-									bottom: 0,
-									borderWidth: 1,
-									borderColor: 'rgba(0, 0, 0, 0.1)',
-								}}
-								className="rounded-xl"
-								pointerEvents="none"
-							/>
 						</View>
 
-						{/* Favorite Button Overlay */}
-						<View
-							style={{
-								backgroundColor: "#FFFFFF",
-								borderColor: "#EBEBEB",
-								position: 'absolute',
-								top: 12,
-								right: 12,
-							}}
-							className="w-8 h-8 rounded-lg border items-center justify-center"
-							pointerEvents="none"
-						>
-							<Ionicons name="heart-outline" size={16} color="#25551b" />
-						</View>
+						{editable && isInPlan && onRemove ? (
+							<Pressable
+								onPress={handleRemove}
+								style={{
+									position: "absolute",
+									top: 12,
+									right: 12,
+									borderWidth: 2,
+									borderBottomWidth: 4,
+								}}
+								className="bg-red-100 border-red-400 border-b-red-600 text-red-600 w-12 h-12 rounded-lg items-center justify-center"
+							>
+								<Ionicons name="close" size={22} color="#dc2626" />
+							</Pressable>
+						) : (
+							<Pressable
+								onPress={handleFavourite}
+								style={{
+									position: "absolute",
+									top: 12,
+									right: 12,
+									borderWidth: 2,
+									borderBottomWidth: 4,
+								}}
+								className="bg-white border-[#EBEBEB] w-10 h-10 rounded-lg items-center justify-center"
+							>
+								<Ionicons name="heart-outline" size={16} color="#25551b" />
+							</Pressable>
+						)}
 					</View>
 
-					{/* Content Section */}
-					<View className={`flex-1 p-4 ${canEditServings ? 'pb-2' : ''}`}>
-						{/* Stats Pills - matching your detail page style */}
-						<View className="flex-row gap-2 mb-3">
-							{recipe.recipe.total_time && (
-								<View
-									style={{
-										borderColor: colors.text,
-										backgroundColor: colors.background,
-										shadowColor: colors.text,
-									}}
-									className="flex-row items-center gap-1 px-2 py-1 border rounded-full shadow-[0px_1px_0px_0px]"
+					<View className="flex-1 p-4">
+						<View className="flex-1">
+							<View className="flex-row items-center gap-2 mt-1">
+								<Text
+									className="text-xl font-montserrat-bold text-gray-700 leading-tight flex-1"
+									numberOfLines={2}
 								>
-									<Ionicons name="time-outline" size={12} color={colors.text} />
-									<Text
-										style={{ color: colors.text }}
-										className="text-xs font-montserrat-bold"
-									>
-										{recipe.recipe.total_time}m
-									</Text>
-								</View>
-							)}
-						</View>
+									{recipe.recipe.name}
+								</Text>
+							</View>
 
-						{/* Recipe Title */}
-						<View className="flex-1 mb-3">
-							<Text
-								className="text-xl font-montserrat-bold text-gray-700 leading-tight"
-								numberOfLines={2}
-							>
-								{recipe.recipe.name}
-							</Text>
-							
 							{recipe.recipe.description && (
 								<Text
 									className="text-sm font-montserrat-medium text-gray-500 mt-2 leading-5"
-									numberOfLines={canEditServings ? 1 : 2}
+									numberOfLines={2}
 								>
 									{recipe.recipe.description}
 								</Text>
 							)}
-						</View>
 
-						{/* Servings Display for Past Weeks */}
-						{!canEditServings && showServingsEditor && (
-							<View className="mt-2">
-								<View className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
-									<Text className="text-center text-sm font-montserrat-semibold text-gray-600">
-										{recipe.servings} serving{recipe.servings !== 1 ? 's' : ''}
-									</Text>
-								</View>
-							</View>
-						)}
-					</View>
-
-					{/* Servings Editor for Current/Future Weeks */}
-					{canEditServings && (
-						<View className="px-4 pb-3">
-                            <View className="flex-row items-center justify-between bg-gray-100 rounded-lg px-3 py-2">
-                                <Text className="text-sm font-montserrat-semibold text-gray-700">
-                                    Servings
-                                </Text>
-                                
-                                <View className="flex-row items-center bg-gray-50 rounded-lg p-1">
-                                    <TouchableOpacity
-                                        onPress={handleServingsDecrease}
-                                        disabled={recipe.servings <= 1}
-                                        className={`w-8 h-8 rounded-md items-center justify-center ${
-                                            recipe.servings <= 1 ? 'bg-gray-200' : 'bg-white border border-gray-200'
-                                        }`}
-                                        {...buttonPress}
-                                    >
-                                        <Ionicons 
-                                            name="remove" 
-                                            size={16} 
-                                            color={recipe.servings <= 1 ? "#9CA3AF" : "#374151"} 
-                                        />
-                                    </TouchableOpacity>
-                                    
-                                    <View className="w-12 items-center">
-                                        <Text className="text-base font-montserrat-semibold text-gray-900">
-                                            {recipe.servings}
+							{!editable && recipe.servings > 0 && (
+                                <View className="flex-row items-center gap-2 mt-auto">
+                                    <View className="flex-row items-center gap-1">
+                                        <Ionicons name="restaurant-outline" size={14} color="#6b7280" />
+                                        <Text className="text-sm font-montserrat-semibold text-gray-600">
+                                            {recipe.servings} {recipe.servings === 1 ? 'serving' : 'servings'}
                                         </Text>
                                     </View>
-                                    
-                                    <TouchableOpacity
-                                        onPress={handleServingsIncrease}
-                                        className="w-8 h-8 rounded-md bg-white border border-gray-200 items-center justify-center"
-                                        {...buttonPress}
-                                    >
-                                        <Ionicons name="add" size={16} color="#374151" />
-                                    </TouchableOpacity>
                                 </View>
-                            </View>
+                            )}
+						</View>
+					</View>
+
+					{editable && isInPlan && (
+						<View className="px-4 pb-3">
+							<View className="items-center">
+								<View
+									className="w-full bg-white border-[#EBEBEB] flex-row justify-between items-center rounded-xl overflow-hidden"
+									style={{
+										borderWidth: 2,
+										borderBottomWidth: 3,
+										height: 50,
+									}}
+								>
+									<Pressable
+										onPress={handleServingsDecrease}
+										disabled={recipe.servings <= 1}
+										className="h-full px-4 items-center justify-center border-r-2 border-input"
+										style={({ pressed }) => ({
+											transform: [
+												{ translateY: pressed && recipe.servings > 1 ? 2 : 0 },
+											],
+										})}
+									>
+										<Ionicons
+											name="remove"
+											size={18}
+											color={recipe.servings <= 1 ? "#B0B0B0" : "#4b5563"}
+										/>
+									</Pressable>
+
+									<View className="px-4 justify-center">
+										<Text className="text-lg font-montserrat-bold text-gray-600 uppercase tracking-wide">
+											{recipe.servings} SERVING{recipe.servings > 1 ? "S" : ""}
+										</Text>
+									</View>
+
+									<Pressable
+										onPress={handleServingsIncrease}
+										className="h-full px-4 items-center justify-center border-l-2 border-input"
+										style={({ pressed }) => ({
+											transform: [{ translateY: pressed ? 2 : 0 }],
+										})}
+									>
+										<Ionicons name="add" size={18} color="#4b5563" />
+									</Pressable>
+								</View>
+							</View>
+						</View>
+					)}
+
+					{editable && !isInPlan && onAdd && (
+						<View className="px-4 pb-4">
+							<Button
+								variant="default"
+								onPress={() => onAdd(recipe.id)}
+								{...buttonPress}
+							>
+								<Text className="text-[#25551b] font-montserrat-semibold uppercase tracking-wide">
+									Add to Plan
+								</Text>
+							</Button>
 						</View>
 					)}
 				</View>

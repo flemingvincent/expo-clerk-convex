@@ -469,7 +469,6 @@ export type Database = {
           recipe_id: string
           servings: number
           sort_order: number | null
-          status: string | null
           updated_at: string | null
           user_id: string
           week_id: string
@@ -480,7 +479,6 @@ export type Database = {
           recipe_id: string
           servings?: number
           sort_order?: number | null
-          status?: string | null
           updated_at?: string | null
           user_id: string
           week_id: string
@@ -491,7 +489,6 @@ export type Database = {
           recipe_id?: string
           servings?: number
           sort_order?: number | null
-          status?: string | null
           updated_at?: string | null
           user_id?: string
           week_id?: string
@@ -850,14 +847,12 @@ export type Database = {
         Returns: {
           created_at: string
           id: string
-          recipe_difficulty: string
           recipe_id: string
           recipe_image_url: string
           recipe_name: string
           recipe_total_time: number
           servings: number
           sort_order: number
-          status: string
           updated_at: string
           user_id: string
           week_id: string
@@ -871,7 +866,6 @@ export type Database = {
           recipe_id: string
           servings: number
           sort_order: number | null
-          status: string | null
           updated_at: string | null
           user_id: string
           week_id: string
@@ -884,10 +878,6 @@ export type Database = {
       update_user_goals: {
         Args: { p_goals: string[]; p_user_id: string }
         Returns: boolean
-      }
-      update_week_meal_plan_status: {
-        Args: { p_status: string; p_user_id?: string; p_week_id: string }
-        Returns: number
       }
       weekly_maintenance: {
         Args: Record<PropertyKey, never>
@@ -909,7 +899,7 @@ export type Database = {
         | "skill_level"
         | "cuisine"
         | "time"
-        | "meal_type" 
+        | "meal_type"
         | "seasonal"
         | "occasion"
         | "equipment"

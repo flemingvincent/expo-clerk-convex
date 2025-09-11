@@ -16,14 +16,7 @@ import { Text } from "@/components/ui/text";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { usePressAnimation } from "@/hooks/onPressAnimation";
 import * as Haptics from "expo-haptics";
-
-// Import types
-import {
-	AVAILABLE_GOALS,
-	FormData,
-	GoalMetadata,
-	UserGoal,
-} from "@/app/(protected)/onboarding";
+import { FormData, GoalMetadata, AVAILABLE_GOALS, UserGoal } from "@/constants/onboarding";
 
 // Enable LayoutAnimation on Android
 if (
@@ -105,7 +98,6 @@ const GoalsStep: React.FC<GoalsStepProps> = ({
 		};
 	}, [contentOpacity, contentTranslateY, buttonOpacity, buttonTranslateY]);
 
-	// Initialize ordered goals
 	useEffect(() => {
 		// Check if user already has goals set
 		if (formData.userGoals && formData.userGoals.length > 0) {
@@ -340,11 +332,8 @@ const GoalsStep: React.FC<GoalsStepProps> = ({
 								<Text className="text-lg font-semibold text-primary">
 									{goal.name}
 								</Text>
-								<Text className="text-xs text-primary/60 mt-0.5">
-									{goal.description}
-								</Text>
 								{index < 4 && (
-									<Text className="text-xs text-primary/40 mt-0.5 font-medium">
+									<Text className="text-md text-primary/60 mt-0.5 font-medium">
 										{getPriorityLabel(index)}
 									</Text>
 								)}

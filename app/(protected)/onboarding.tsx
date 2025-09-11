@@ -1,8 +1,6 @@
 import {
 	View,
 	TouchableOpacity,
-	KeyboardAvoidingView,
-	Platform,
 	Animated,
 	Dimensions,
 	Easing,
@@ -15,89 +13,19 @@ import { useAuth } from "@/context/supabase-provider";
 import { Ionicons } from "@expo/vector-icons";
 import Svg, { Text as SvgText } from "react-native-svg";
 import { Image } from "@/components/image";
-
 import { Text } from "@/components/ui/text";
-import { supabase } from "@/config/supabase";
 
-// Import types from our database types file
-import {
-	UserPreferencesInsert,
-	UserPreferenceTagInsert,
-	ProfileUpdate,
-	TagType,
-} from "@/types/database";
-
-// Import the step components (excluding WelcomeStep)
+import { ProfileUpdate } from "@/types/database";
+import { FormData } from "@/constants/onboarding";
+import GoalsStep from "@/components/onboarding/GoalsStep";
 import DetailsStep from "@/components/onboarding/DetailsStep";
 import PlanningStep from "@/components/onboarding/PlanningStep";
-import GoalsStep from "@/components/onboarding/GoalsStep";
 import PreferencesStep from "@/components/onboarding/PreferencesStep";
 import MealTypesStep from "@/components/onboarding/MealType";
-import { useAppData } from "@/context/app-data-provider";
+import { useUserPreferences } from "@/context/user-preferences-provider";
+import { useReferenceData } from "@/context/reference-data-provider";
 
 const { width, height } = Dimensions.get("window");
-
-export type UserGoal = "budget" | "macro" | "time" | "meal_type";
-
-export interface GoalMetadata {
-	type: UserGoal;
-	name: string;
-	description: string;
-	icon: string; // Ionicons name
-	color: string;
-}
-
-export const AVAILABLE_GOALS: GoalMetadata[] = [
-	{
-		type: "budget",
-		name: "Saving Money",
-		description: "Find budget-friendly recipes",
-		icon: "cash-outline",
-		color: "#10B981", // Green
-	},
-	{
-		type: "macro",
-		name: "Healthy Eating",
-		description: "Focus on nutritional goals",
-		icon: "fitness-outline",
-		color: "#F59E0B", // Orange
-	},
-	{
-		type: "time",
-		name: "Saving Time",
-		description: "Quick and easy meals",
-		icon: "time-outline",
-		color: "#3B82F6", // Blue
-	},
-	{
-		type: "meal_type",
-		name: "Weekly Planning",
-		description: "Organized meal preparation",
-		icon: "calendar-outline",
-		color: "#8B5CF6", // Purple
-	},
-];
-
-// Define the FormData interface for onboarding
-export interface FormData {
-	// Profile fields
-	name: string;
-	country: string;
-	city: string;
-	postcode: number;
-
-	// User preferences fields
-	mealsPerWeek: number;
-	servesPerMeal: number;
-
-	userGoals: string[];
-
-	// User preference tags
-	userPreferenceTags: Array<{
-		tag_id: string;
-		priority?: number | null;
-	}>;
-}
 
 const SuccessAnimation = ({
 	visible,
@@ -315,23 +243,25 @@ const SuccessAnimation = ({
 
 export default function OnboardingScreen() {
 	const { session, profile, updateProfile } = useAuth();
-	const { userPreferences, tags, refreshUserPreferences, refreshAll } =
-		useAppData();
+	const {
+		preferences: userPreferences,
+		refreshPreferences,
+		updatePreferences,
+	} = useUserPreferences();
+	const { tags } = useReferenceData();
 	const [currentStep, setCurrentStep] = useState(0);
 	const [isLoading, setIsLoading] = useState(false);
 	const [showSuccess, setShowSuccess] = useState(false);
 
-	// Simple fade animation for step transitions
 	const stepOpacity = useRef(new Animated.Value(1)).current;
 
-	// Initialize form data with proper null handling
 	const [formData, setFormData] = useState<FormData>({
 		name: profile?.display_name || "",
 		country: profile?.country || "",
 		city: profile?.city || "",
 		postcode: profile?.post_code || 0,
-		mealsPerWeek: userPreferences?.meals_per_week || 1,
-		servesPerMeal: userPreferences?.serves_per_meal || 1,
+		mealsPerWeek: userPreferences?.meals_per_week || 4, // Use default 4
+		servesPerMeal: userPreferences?.serves_per_meal || 2, // Use default 2
 		userGoals: userPreferences?.user_goals || [],
 		userPreferenceTags: userPreferences?.user_preference_tags || [],
 	});
@@ -378,7 +308,6 @@ export default function OnboardingScreen() {
 			setIsLoading(true);
 			setShowSuccess(true);
 
-			// Update profile using typed ProfileUpdate
 			const profileUpdates: Partial<ProfileUpdate> = {
 				display_name: formData.name || null,
 				country: formData.country || null,
@@ -389,53 +318,14 @@ export default function OnboardingScreen() {
 
 			await updateProfile(profileUpdates);
 
-			// Upsert user preferences with user_goals
-			const userPreferencesData: Partial<UserPreferencesInsert> = {
-				user_id: session?.user?.id,
+			await updatePreferences({
 				meals_per_week: formData.mealsPerWeek,
 				serves_per_meal: formData.servesPerMeal,
 				user_goals: formData.userGoals,
-			};
+				user_preference_tags: formData.userPreferenceTags,
+			});
 
-			const { data: prefData, error: prefError } = await supabase
-				.from("user_preferences")
-				.upsert(userPreferencesData, { onConflict: "user_id" })
-				.select()
-				.single();
-
-			if (prefError) throw prefError;
-
-			// Handle user preference tags (dietary preferences, meal types, etc.)
-			if (formData.userPreferenceTags.length > 0 && prefData) {
-				const preferenceId = prefData.id;
-
-				// Delete existing preference tags
-				const { error: deleteError } = await supabase
-					.from("user_preference_tags")
-					.delete()
-					.eq("user_preference_id", preferenceId);
-
-				if (deleteError) throw deleteError;
-
-				// Insert new preference tags (no longer includes goals)
-				const tagInserts: UserPreferenceTagInsert[] =
-					formData.userPreferenceTags.map((tag) => ({
-						user_preference_id: preferenceId,
-						tag_id: tag.tag_id,
-					}));
-
-				if (tagInserts.length > 0) {
-					const { error: insertError } = await supabase
-						.from("user_preference_tags")
-						.insert(tagInserts);
-
-					if (insertError) throw insertError;
-				}
-			}
-
-			// Refresh app data to get the latest preferences
-			await refreshUserPreferences();
-			await refreshAll();
+			await refreshPreferences();
 		} catch (error) {
 			console.error("Error completing onboarding:", error);
 			setShowSuccess(false);

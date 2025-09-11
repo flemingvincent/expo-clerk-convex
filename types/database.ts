@@ -86,7 +86,6 @@ export interface MealPlanItem {
 export interface UserPreferencesWithTags extends UserPreferences {
     user_preference_tags?: Array<{
         tag_id: string;
-        priority: number | null;
     }>;
 }
 

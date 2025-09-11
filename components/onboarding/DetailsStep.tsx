@@ -6,14 +6,12 @@ import Svg, { Text as SvgText } from "react-native-svg";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-
+import { FormData } from "@/constants/onboarding";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { Form, FormField, FormInput } from "@/components/ui/form";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { usePressAnimation } from "@/hooks/onPressAnimation";
-
-import { FormData } from "@/app/(protected)/onboarding";
 
 // Define the form schema with validation
 const formSchema = z.object({

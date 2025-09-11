@@ -6,10 +6,9 @@ import Svg, { Text as SvgText } from "react-native-svg";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { usePressAnimation } from "@/hooks/onPressAnimation";
-import { useAppData } from "@/context/app-data-provider";
-
-import { FormData } from "@/app/(protected)/onboarding";
+import { FormData } from "@/constants/onboarding";
 import type { Tag, TagType } from "@/types/database";
+import { useReferenceData } from "@/context/reference-data-provider";
 
 interface PreferencesStepProps {
 	formData: FormData;
@@ -27,8 +26,8 @@ const PreferencesStep: React.FC<PreferencesStepProps> = ({
 	onNext,
 	isLoading,
 }) => {
-	const { tags } = useAppData();
-	const [groupedTags, setGroupedTags] = useState<GroupedTags>({});
+    const { tags } = useReferenceData();
+    const [groupedTags, setGroupedTags] = useState<GroupedTags>({});
 
 	// Animation setup similar to other screens
 	const contentOpacity = useRef(new Animated.Value(0)).current;
@@ -115,17 +114,14 @@ const PreferencesStep: React.FC<PreferencesStepProps> = ({
 
 		let updatedPreferences;
 		if (existingTagIndex !== -1) {
-			// Remove the tag
 			updatedPreferences = currentUserPreferenceTags.filter(
 				(tag) => tag.tag_id !== tagId,
 			);
 		} else {
-			// Add the tag (non-goal tags don't need priority)
 			updatedPreferences = [
 				...currentUserPreferenceTags,
 				{
-					tag_id: tagId,
-					priority: null,
+					tag_id: tagId
 				},
 			];
 		}

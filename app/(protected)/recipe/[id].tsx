@@ -16,16 +16,18 @@ import { supabase } from "@/config/supabase";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
-import { useAppData } from "@/context/app-data-provider";
 import { getRecipeColorScheme } from "@/lib/colors";
 import { Instruction, RecipeIngredient, RecipeWithTags } from "@/types/database";
+import { useReferenceData } from "@/context/reference-data-provider";
+import { useUserPreferences } from "@/context/user-preferences-provider";
 
 const { width: screenWidth } = Dimensions.get("window");
 
 export default function RecipeDetail() {
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const router = useRouter();
-	const { tags, ingredients: allIngredients, userPreferences, units } = useAppData();
+	const { tags, ingredients, units } = useReferenceData();
+    const { preferences } = useUserPreferences();
 	const [recipe, setRecipe] = useState<RecipeWithTags | null>(null);
 	const [recipeIngredients, setRecipeIngredients] = useState<
 		RecipeIngredient[]
@@ -34,7 +36,7 @@ export default function RecipeDetail() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [isFavorited, setIsFavorited] = useState(false);
-	const [servings, setServings] = useState(userPreferences.serves_per_meal ?? 2);
+	const [servings, setServings] = useState(preferences?.serves_per_meal ?? 2);
 	const [tab, setTab] = useState<"ingredients" | "instructions">("ingredients");
 
 	// Add state for tracking scroll position and title visibility
@@ -148,7 +150,7 @@ export default function RecipeDetail() {
 			setRecipe(recipeWithTags);
 			setRecipeIngredients(ingredientsData || []);
 			setInstructions(instructionsData || []);
-			setServings(userPreferences.serves_per_meal ?? recipeWithTags.default_servings ?? 4);
+			setServings(preferences?.serves_per_meal ?? recipeWithTags.default_servings ?? 4);
 		} catch (err) {
 			console.error("Unexpected error:", err);
 			setError("Failed to fetch recipe");
@@ -168,7 +170,7 @@ export default function RecipeDetail() {
 	};
 
 	const getIngredientName = (ingredientId: string) => {
-		const ingredient = allIngredients.find((ing) => ing.id === ingredientId);
+		const ingredient = ingredients.find((ing) => ing.id === ingredientId);
 		return ingredient?.name || ingredientId;
 	};
 

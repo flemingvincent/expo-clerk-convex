@@ -7,9 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { usePressAnimation } from "@/hooks/onPressAnimation";
-import { useAppData } from "@/context/app-data-provider";
-
-import { FormData } from "@/app/(protected)/onboarding";
+import { useReferenceData } from "@/context/reference-data-provider";
+import { FormData } from "@/constants/onboarding";
 import type { Tag } from "@/types/database";
 
 interface MealTypesStepProps {
@@ -25,8 +24,8 @@ const MealTypesStep: React.FC<MealTypesStepProps> = ({
 	onNext,
 	isLoading,
 }) => {
-	const { tags } = useAppData();
-	const [mealTypeTags, setMealTypeTags] = useState<Tag[]>([]);
+    const { tags, getTagsByType } = useReferenceData();
+    const [mealTypeTags, setMealTypeTags] = useState<Tag[]>([]);
 	
 	// Animation setup similar to other screens
 	const contentOpacity = useRef(new Animated.Value(0)).current;
@@ -48,10 +47,9 @@ const MealTypesStep: React.FC<MealTypesStepProps> = ({
 
 	// Get meal type tags from the database
 	useEffect(() => {
-		// Filter tags to get only meal_type tags
-		const filteredMealTypeTags = tags.filter(tag => tag.type === "meal_type");
-		setMealTypeTags(filteredMealTypeTags);
-	}, [tags]);
+        const filteredMealTypeTags = getTagsByType("meal_type");
+        setMealTypeTags(filteredMealTypeTags);
+	}, [tags, getTagsByType]);
 
 	useEffect(() => {
 		// Content entrance animation
@@ -107,10 +105,9 @@ const MealTypesStep: React.FC<MealTypesStepProps> = ({
 				pref => pref.tag_id !== mealTypeTag.id
 			);
 		} else {
-			// Add the tag (meal types don't need priority)
 			updatedTags = [
 				...currentUserPreferenceTags,
-				{ tag_id: mealTypeTag.id, priority: null }
+				{ tag_id: mealTypeTag.id, }
 			];
 		}
 

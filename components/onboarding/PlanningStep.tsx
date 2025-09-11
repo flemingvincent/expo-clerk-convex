@@ -8,8 +8,7 @@ import { Text } from "@/components/ui/text";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { usePressAnimation } from "@/hooks/onPressAnimation";
 import Counter from "./Counter";
-
-import { FormData } from "@/app/(protected)/onboarding";
+import { FormData } from "@/constants/onboarding";
 
 interface PlanningStepProps {
 	formData: FormData;
