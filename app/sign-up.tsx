@@ -47,7 +47,7 @@ const formSchema = z
 		path: ["confirmPassword"],
 	});
 
-export default function SignUp() {
+export const SignUp = () => {
 	const { signUp } = useAuth();
 	const router = useRouter();
 

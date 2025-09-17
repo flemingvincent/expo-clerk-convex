@@ -5,19 +5,14 @@
     "scheme": "mealmate",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/mealmate-logo.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/mm-homie-transparent-bg.png",
+      "image": "./assets/mealmate-logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#E2F380",
       "imageResizeMode": "contain"
     },
-    "fonts": [
-      {
-        "asset": "./assets/fonts/BNDimeDisplay.otf"
-      }
-    ],
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -28,22 +23,22 @@
         "usesNonExemptEncryption": false
       },
       "splash": {
-        "image": "/assets/mm-homie-transparent-bg.png",
+        "image": "/assets/mealmate-logo.png",
         "resizeMode": "cover",
         "backgroundColor": "#E2F380"
       },
       "icon": {
-        "dark": "./assets/icon-dark.png",
-        "light": "./assets/icon.png"
+        "dark": "./assets/mealmate-logo.png",
+        "light": "./assets/mealmate-logo.png"
       },
       "bundleIdentifier": "com.flemingvincent.ExpoSupabaseStarter"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png"
+        "foregroundImage": "./assets/mealmate-logo.png"
       },
       "splash": {
-        "image": "/assets/mm-homie-transparent-bg.png",
+        "image": "/assets/mealmate-logo.png",
         "resizeMode": "cover",
         "backgroundColor": "#E2F380"
       }
@@ -53,7 +48,8 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font"
     ],
     "extra": {
       "router": {},

@@ -15,7 +15,7 @@ const { width: screenWidth } = Dimensions.get('window');
 
 export default function WelcomeScreen() {
 	const router = useRouter();
-	const appIcon = require("@/assets/mm-homie-on-m.png");
+	const appIcon = require("@/assets/mealmate-logo.png");
     const slide2Icon = require("@/assets/phone-and-groceries.png");
 	const scrollViewRef = useRef<ScrollView>(null);
 	const [currentSlide, setCurrentSlide] = useState(0);
