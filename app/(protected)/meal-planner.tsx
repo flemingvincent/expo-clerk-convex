@@ -1,4 +1,5 @@
-import { View, ScrollView, TouchableOpacity, SafeAreaView } from "react-native";
+import { View, ScrollView, TouchableOpacity } from "react-native";
+import { SafeAreaView } from "@/components/safe-area-view";
 import { useState, useEffect } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";

@@ -7,42 +7,45 @@ import { ReferenceDataProvider } from "@/context/reference-data-provider";
 import { UserPreferencesProvider } from "@/context/user-preferences-provider";
 import { RecipeProvider } from "@/context/recipe-data-provider";
 import { WeeksProvider } from "@/context/week-data-provider";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 
 export default function AppLayout() {
 
 	return (
-		<AuthProvider>
-            <ReferenceDataProvider>
-                <UserPreferencesProvider>
-                    <WeeksProvider>
-                        <RecipeProvider>
-                            <MealPlanProvider>
-                                <Stack screenOptions={{ headerShown: false, gestureEnabled: false }}>
-                                    <Stack.Screen name="(protected)" />
-                                    <Stack.Screen name="welcome" />
-                                    <Stack.Screen
-                                        name="sign-up"
-                                        options={{
-                                            presentation: "card",
-                                            headerShown: false,
-                                            gestureEnabled: true,
-                                        }}
-                                    />
-                                    <Stack.Screen
-                                        name="sign-in"
-                                        options={{
-                                            presentation: "card",
-                                            headerShown: false,
-                                            gestureEnabled: true,
-                                        }}
-                                    />
-                                </Stack>
-                            </MealPlanProvider>
-                        </RecipeProvider>
-                    </WeeksProvider>
-                </UserPreferencesProvider>
-            </ReferenceDataProvider>
-		</AuthProvider>
+        <SafeAreaProvider>
+            <AuthProvider>
+                <ReferenceDataProvider>
+                    <UserPreferencesProvider>
+                        <WeeksProvider>
+                            <RecipeProvider>
+                                <MealPlanProvider>
+                                    <Stack screenOptions={{ headerShown: false, gestureEnabled: false }}>
+                                        <Stack.Screen name="(protected)" />
+                                        <Stack.Screen name="welcome" />
+                                        <Stack.Screen
+                                            name="sign-up"
+                                            options={{
+                                                presentation: "card",
+                                                headerShown: false,
+                                                gestureEnabled: true,
+                                            }}
+                                        />
+                                        <Stack.Screen
+                                            name="sign-in"
+                                            options={{
+                                                presentation: "card",
+                                                headerShown: false,
+                                                gestureEnabled: true,
+                                            }}
+                                        />
+                                    </Stack>
+                                </MealPlanProvider>
+                            </RecipeProvider>
+                        </WeeksProvider>
+                    </UserPreferencesProvider>
+                </ReferenceDataProvider>
+            </AuthProvider>
+        </SafeAreaProvider>
 	);
 }
