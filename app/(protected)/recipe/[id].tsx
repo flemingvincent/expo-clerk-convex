@@ -21,7 +21,6 @@ import { getRecipeColorScheme } from "@/lib/colors";
 import { Instruction, RecipeIngredient, RecipeWithTags } from "@/types/database";
 import { useReferenceData } from "@/context/reference-data-provider";
 import { useUserPreferences } from "@/context/user-preferences-provider";
-import { usePressAnimation } from "@/hooks/onPressAnimation";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -45,11 +44,6 @@ export default function RecipeDetail() {
 	const [showHeaderTitle, setShowHeaderTitle] = useState(false);
 	const scrollY = useRef(new Animated.Value(0)).current;
 	const titleOpacity = useRef(new Animated.Value(0)).current;
-
-	const buttonPress = usePressAnimation({
-		hapticStyle: "Medium",
-		pressDistance: 4,
-	});
 
 	// Get dynamic colors based on recipe tags
 	const colors = recipe
@@ -246,7 +240,10 @@ export default function RecipeDetail() {
 					>
 						{error || "RECIPE NOT FOUND"}
 					</Text>
-					<Button onPress={() => router.back()} variant="outline" {...buttonPress}>
+					<Button 
+                        onPress={() => router.back()} 
+                        onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                        variant="outline" >
 						<Text className="font-montserrat-bold tracking-wide uppercase">
 							Go Back
 						</Text>
@@ -503,8 +500,8 @@ export default function RecipeDetail() {
 						<Button
 							variant={tab === "ingredients" ? "default" : "outline"}
 							onPress={() => handleTabChange("ingredients")}
+                            onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
 							className="flex-1"
-							{...buttonPress}
 						>
 							<Text className="font-montserrat-bold tracking-wide uppercase">
 								Ingredients
@@ -513,8 +510,8 @@ export default function RecipeDetail() {
 						<Button
 							variant={tab === "instructions" ? "default" : "outline"}
 							onPress={() => handleTabChange("instructions")}
+                            onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
 							className="flex-1"
-							{...buttonPress}
 						>
 							<Text className="font-montserrat-bold tracking-wide uppercase">
 								Instructions
@@ -642,7 +639,7 @@ export default function RecipeDetail() {
 					<Button
 						variant="default"
 						className="w-full"
-						{...buttonPress}
+                        onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
 					>
 						<View className="flex-row items-center gap-2">
 							<Text className="text-[#25551b] font-montserrat-bold uppercase tracking-wide">

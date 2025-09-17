@@ -11,9 +11,11 @@ import { supabase } from "@/config/supabase";
 import { useAuth } from "./supabase-provider";
 import { useReferenceData } from "./reference-data-provider";
 import { RecipeWithTags } from "@/types/database";
+import { RecipeIngredient } from "@/types/database";
 
 interface RecipeState {
 	recipes: RecipeWithTags[];
+	recipeIngredients: RecipeIngredient[];
 	loading: boolean;
 	error: Error | null;
 	initialized: boolean;
@@ -29,10 +31,12 @@ interface RecipeState {
 	getRecipeById: (id: string) => RecipeWithTags | undefined;
 	getRecipesByIds: (ids: string[]) => RecipeWithTags[];
 	getRecipesExcluding: (excludeIds: string[]) => RecipeWithTags[];
+	getRecipeIngredients: (recipeId: string) => RecipeIngredient[];
 }
 
 const RecipeContext = createContext<RecipeState>({
 	recipes: [],
+	recipeIngredients: [],
 	loading: false,
 	error: null,
 	initialized: false,
@@ -42,6 +46,7 @@ const RecipeContext = createContext<RecipeState>({
 	getRecipeById: () => undefined,
 	getRecipesByIds: () => [],
 	getRecipesExcluding: () => [],
+	getRecipeIngredients: () => [],
 });
 
 export const useRecipes = () => {
@@ -54,65 +59,89 @@ export const useRecipes = () => {
 
 export function RecipeProvider({ children }: PropsWithChildren) {
 	const [recipes, setRecipes] = useState<RecipeWithTags[]>([]);
+	const [recipeIngredients, setRecipeIngredients] = useState<
+		RecipeIngredient[]
+	>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<Error | null>(null);
 	const [initialized, setInitialized] = useState(false);
 
-	const fetchRecipes = useCallback(async () => {
-		try {
-			setLoading(true);
-			setError(null);
+// In recipe-data-provider.tsx
+const fetchRecipes = useCallback(async () => {
+	try {
+		setLoading(true);
+		setError(null);
 
-			if (__DEV__) {
-				console.log("🔍 Fetching recipes...");
-			}
-
-			const { data: recipesData, error: fetchError } = await supabase
-				.from("recipe")
-				.select(
-					`
-          *,
-          recipe_tags(
-            tag_id
-          )
-        `,
-				)
-				.order("created_at", { ascending: false });
-
-			if (fetchError) {
-				throw new Error(fetchError.message);
-			}
-
-			// Transform the data to extract just the tag_ids
-			const recipesWithTags: RecipeWithTags[] =
-				recipesData?.map((recipe) => {
-					const tagIds =
-						recipe.recipe_tags?.map((rt: any) => rt.tag_id).filter(Boolean) ||
-						[];
-
-					return {
-						...recipe,
-						tagIds: tagIds,
-					};
-				}) || [];
-
-			if (__DEV__) {
-				console.log("📊 Recipes fetched:", {
-					total: recipesWithTags.length,
-					withTags: recipesWithTags.filter((r) => r.tagIds.length > 0).length,
-				});
-			}
-
-			setRecipes(recipesWithTags);
-			setInitialized(true);
-		} catch (err) {
-			const error = err instanceof Error ? err : new Error(String(err));
-			console.error("Error fetching recipes:", error);
-			setError(error);
-		} finally {
-			setLoading(false);
+		if (__DEV__) {
+			console.log("🔍 Fetching recipes and ingredients...");
 		}
-	}, []);
+
+		// Fetch recipes with tags
+		const { data: recipesData, error: fetchError } = await supabase
+			.from("recipe")
+			.select(
+				`
+				*,
+				recipe_tags(
+					tag_id
+				)
+			`
+			)
+			.order("created_at", { ascending: false });
+
+		if (fetchError) {
+			throw new Error(fetchError.message);
+		}
+
+		// Fetch recipe ingredients WITHOUT nested data
+		const { data: ingredientsData, error: ingredientsError } = await supabase
+			.from("recipe_ingredients")
+			.select("*")
+			.order("recipe_id");
+
+		if (ingredientsError) {
+			throw new Error(ingredientsError.message);
+		}
+
+		// Transform the recipes data
+		const recipesWithTags: RecipeWithTags[] =
+			recipesData?.map((recipe) => {
+				const tagIds =
+					recipe.recipe_tags?.map((rt: any) => rt.tag_id).filter(Boolean) ||
+					[];
+
+				return {
+					...recipe,
+					tagIds: tagIds,
+				};
+			}) || [];
+
+		if (__DEV__) {
+			console.log("📊 Data fetched:", {
+				recipes: recipesWithTags.length,
+				ingredients: ingredientsData?.length || 0,
+				withTags: recipesWithTags.filter((r) => r.tagIds.length > 0).length,
+			});
+		}
+
+		setRecipes(recipesWithTags);
+		setRecipeIngredients(ingredientsData || []);
+		setInitialized(true);
+	} catch (err) {
+		const error = err instanceof Error ? err : new Error(String(err));
+		console.error("Error fetching recipes:", error);
+		setError(error);
+	} finally {
+		setLoading(false);
+	}
+}, []);
+
+	const getRecipeIngredients = useCallback(
+		(recipeId: string): RecipeIngredient[] => {
+			return recipeIngredients.filter((ing) => ing.recipe_id === recipeId);
+		},
+		[recipeIngredients],
+	);
 
 	// Simple tag-based filtering
 	const filterByTagIds = useCallback(
@@ -166,14 +195,15 @@ export function RecipeProvider({ children }: PropsWithChildren) {
 	);
 
 	useEffect(() => {
-        if (!initialized) {
-            fetchRecipes();
-        }
-    }, [initialized]);
+		if (!initialized) {
+			fetchRecipes();
+		}
+	}, [initialized]);
 
 	const contextValue = useMemo(
 		() => ({
 			recipes,
+            recipeIngredients,
 			loading,
 			error,
 			initialized,
@@ -183,9 +213,11 @@ export function RecipeProvider({ children }: PropsWithChildren) {
 			getRecipeById,
 			getRecipesByIds,
 			getRecipesExcluding,
+            getRecipeIngredients,
 		}),
 		[
 			recipes,
+            recipeIngredients,
 			loading,
 			error,
 			initialized,
@@ -195,6 +227,7 @@ export function RecipeProvider({ children }: PropsWithChildren) {
 			getRecipeById,
 			getRecipesByIds,
 			getRecipesExcluding,
+            getRecipeIngredients,
 		],
 	);
 
