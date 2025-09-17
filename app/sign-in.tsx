@@ -7,6 +7,7 @@ import {
 	Animated,
 	KeyboardAvoidingView,
 	Platform,
+    Pressable,
 } from "react-native";
 import * as z from "zod";
 import Svg, { Text as SvgText } from "react-native-svg";
@@ -19,7 +20,6 @@ import { Form, FormField, FormInput } from "@/components/ui/form";
 import { Text } from "@/components/ui/text";
 import { useAuth } from "@/context/supabase-provider";
 import { useRouter } from "expo-router";
-import { usePressAnimation } from "@/hooks/onPressAnimation";
 
 const formSchema = z.object({
 	email: z.string().email("Please enter a valid email address."),
@@ -32,16 +32,6 @@ const formSchema = z.object({
 const SignIn = () => {
 	const { signIn } = useAuth();
 	const router = useRouter();
-
-	const buttonPress = usePressAnimation({
-		hapticStyle: "Medium",
-		pressDistance: 4,
-	});
-
-	const linkPress = usePressAnimation({
-		hapticStyle: "Light",
-		pressDistance: 2,
-	});
 
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
@@ -67,9 +57,8 @@ const SignIn = () => {
 
 	return (
 		<SafeAreaView className="flex-1 bg-lightgreen" edges={["top", "bottom"]}>
-			{/* Back arrow */}
 			<View className="flex-row justify-start p-4 pt-2">
-				<TouchableOpacity
+				<Pressable
 					onPress={handleBackPress}
 					className="p-2 -ml-2"
 					hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -78,10 +67,9 @@ const SignIn = () => {
 					accessibilityHint="Navigate back to welcome screen"
 				>
 					<Ionicons name="arrow-back" size={24} color="#25551b" />
-				</TouchableOpacity>
+				</Pressable>
 			</View>
 
-			{/* Main content */}
 			<KeyboardAvoidingView
 				className="flex-1"
 				behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -105,7 +93,6 @@ const SignIn = () => {
 						</SvgText>
 					</Svg>
 
-					{/* Form container styled similar to welcome page */}
 					<View className="w-full bg-background/80 rounded-2xl p-6 shadow-md">
 						<Form {...form}>
 							<View className="gap-4">
@@ -148,12 +135,12 @@ const SignIn = () => {
 							</View>
 						</Form>
 
-						{/* Sign in button styled like welcome page buttons */}
 						<Animated.View>
 							<Button
 								size="lg"
 								variant="default"
 								onPress={form.handleSubmit(onSubmit)}
+                                onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
 								disabled={form.formState.isSubmitting}
 								className="mt-6"
 								accessibilityRole="button"
@@ -163,7 +150,6 @@ const SignIn = () => {
 									disabled: form.formState.isSubmitting,
 									busy: form.formState.isSubmitting,
 								}}
-								{...buttonPress}
 							>
 								{form.formState.isSubmitting ? (
 									<ActivityIndicator size="small" color="#fff" />
@@ -182,18 +168,17 @@ const SignIn = () => {
 						</Animated.View>
 					</View>
 
-					{/* "Don't have an account" section - Using router.replace instead of Link */}
 					<View className="flex-row mt-6">
 						<Text className="text-primary">Don't have an account? </Text>
-						<TouchableOpacity
-							{...linkPress}
+						<Pressable
 							onPress={() => router.replace("/sign-up")}
+                            onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
 							accessibilityRole="button"
 							accessibilityLabel="Sign in"
 							accessibilityHint="Navigate to sign in page if you already have an account"
 						>
 							<Text className="text-primary font-bold">Sign Up</Text>
-						</TouchableOpacity>
+						</Pressable>
 					</View>
 				</View>
 			</KeyboardAvoidingView>

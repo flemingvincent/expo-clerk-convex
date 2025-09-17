@@ -1,14 +1,14 @@
 // components/onboarding/DietaryStep.tsx (PreferencesStep)
 import React, { useState, useEffect, useRef } from "react";
-import { View, TouchableOpacity, ScrollView, Animated } from "react-native";
+import { View, TouchableOpacity, ScrollView, Animated, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Svg, { Text as SvgText } from "react-native-svg";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { usePressAnimation } from "@/hooks/onPressAnimation";
 import { FormData } from "@/constants/onboarding";
 import type { Tag, TagType } from "@/types/database";
 import { useReferenceData } from "@/context/reference-data-provider";
+import * as Haptics from 'expo-haptics';
 
 interface PreferencesStepProps {
 	formData: FormData;
@@ -17,7 +17,6 @@ interface PreferencesStepProps {
 	isLoading: boolean;
 }
 
-// Type for grouped tags
 type GroupedTags = Record<string, Tag[]>;
 
 const PreferencesStep: React.FC<PreferencesStepProps> = ({
@@ -29,26 +28,12 @@ const PreferencesStep: React.FC<PreferencesStepProps> = ({
     const { tags } = useReferenceData();
     const [groupedTags, setGroupedTags] = useState<GroupedTags>({});
 
-	// Animation setup similar to other screens
 	const contentOpacity = useRef(new Animated.Value(0)).current;
 	const contentTranslateY = useRef(new Animated.Value(20)).current;
 	const buttonOpacity = useRef(new Animated.Value(0)).current;
 	const buttonTranslateY = useRef(new Animated.Value(20)).current;
 
-	// Press animation for button
-	const buttonPress = usePressAnimation({
-		hapticStyle: "Medium",
-		pressDistance: 4,
-	});
-
-	// Press animation for tag selection
-	const tagPress = usePressAnimation({
-		hapticStyle: "Light",
-		pressDistance: 1,
-	});
-
 	useEffect(() => {
-		// Content entrance animation
 		const contentTimer = setTimeout(() => {
 			Animated.parallel([
 				Animated.timing(contentOpacity, {
@@ -64,7 +49,6 @@ const PreferencesStep: React.FC<PreferencesStepProps> = ({
 			]).start();
 		}, 100);
 
-		// Button entrance animation
 		const buttonTimer = setTimeout(() => {
 			Animated.parallel([
 				Animated.timing(buttonOpacity, {
@@ -87,12 +71,9 @@ const PreferencesStep: React.FC<PreferencesStepProps> = ({
 	}, [contentOpacity, contentTranslateY, buttonOpacity, buttonTranslateY]);
 
 	useEffect(() => {
-		// Filter out goal and meal_type tags (handled in other steps) and group remaining tags by their type
 		const groups: GroupedTags = {};
 
 		tags.forEach((tag) => {
-			// Skip goals as they're handled in GoalsStep
-			// Skip meal_types as they're handled in MealTypesStep
 			if (tag.type === "goal" || tag.type === "meal_type") return;
 
 			const type = tag.type;
@@ -129,7 +110,6 @@ const PreferencesStep: React.FC<PreferencesStepProps> = ({
 		handleFormChange("userPreferenceTags", updatedPreferences);
 	};
 
-	// Helper function to get display name for tag types
 	const getTypeDisplayName = (type: TagType | string): string => {
 		const typeDisplayNames: Record<string, string> = {
 			allergen: "Allergies & Intolerances",
@@ -153,7 +133,6 @@ const PreferencesStep: React.FC<PreferencesStepProps> = ({
 				.join(" ");
 	};
 
-	// Order of tag groups to display - prioritizing allergens, then dietary preferences
 	const typeOrder: (TagType | string)[] = [
 		"allergen",
 		"diet",
@@ -170,7 +149,6 @@ const PreferencesStep: React.FC<PreferencesStepProps> = ({
 		"protein",
 	];
 
-	// Count total selected preferences (excluding goals and meal types)
 	const selectedCount = formData.userPreferenceTags.filter(pref => {
 		const tag = tags.find(t => t.id === pref.tag_id);
 		return tag && tag.type !== "goal" && tag.type !== "meal_type";
@@ -191,7 +169,6 @@ const PreferencesStep: React.FC<PreferencesStepProps> = ({
 				}}
 				className="items-center mt-8 mb-8"
 			>
-				{/* SVG Title matching signup style */}
 				<Svg width="380" height="60">
 					<SvgText
 						x="190"
@@ -255,9 +232,10 @@ const PreferencesStep: React.FC<PreferencesStepProps> = ({
 													);
 
 													return (
-														<TouchableOpacity
+														<Pressable
 															key={tag.id}
 															onPress={() => toggleTag(tag.id)}
+                                                            onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
 															className={`px-3 py-2 m-1 rounded-full border ${
 																isSelected
 																	? "bg-primary border-primary"
@@ -267,7 +245,6 @@ const PreferencesStep: React.FC<PreferencesStepProps> = ({
 															accessibilityLabel={`${isSelected ? "Remove" : "Add"} ${tag.name} preference`}
 															accessibilityHint={`Toggle ${tag.name} as a preference`}
 															accessibilityState={{ selected: isSelected }}
-															{...tagPress}
 														>
 															<View className="flex-row items-center">
 																<Text
@@ -287,7 +264,7 @@ const PreferencesStep: React.FC<PreferencesStepProps> = ({
 																	/>
 																)}
 															</View>
-														</TouchableOpacity>
+														</Pressable>
 													);
 												})}
 											</View>
@@ -308,6 +285,7 @@ const PreferencesStep: React.FC<PreferencesStepProps> = ({
 								size="lg"
 								variant="funky"
 								onPress={onNext}
+                                onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
 								disabled={isLoading}
 								className="w-full"
 								accessibilityRole="button"
@@ -317,7 +295,6 @@ const PreferencesStep: React.FC<PreferencesStepProps> = ({
 									disabled: isLoading,
 									busy: isLoading,
 								}}
-								{...buttonPress}
 							>
 								<View className="flex-row items-center justify-center">
 									<Text className="text-primary text-xl mr-2 font-semibold">

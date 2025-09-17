@@ -258,18 +258,17 @@ export default function RecipeDetail() {
 
 	return (
 		<SafeAreaView className="flex-1 bg-white" edges={["top"]}>
-			{/* Simplified Header matching meal planner style */}
 			<View className="bg-white border-b-2 border-b-[#EBEBEB]">
 				<View className="flex-row items-center justify-between px-4 py-3">
-					<TouchableOpacity
+					<Pressable
 						onPress={handleBackPress}
+                        onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
 						className="p-2"
-						{...buttonPress}
 					>
 						<Ionicons name="arrow-back" size={24} color="#1f2937" />
-					</TouchableOpacity>
+					</Pressable>
 
-					{/* Animated Recipe Title in Header */}
 					<Animated.View
 						style={{
 							opacity: titleOpacity,
@@ -287,17 +286,18 @@ export default function RecipeDetail() {
 						</Text>
 					</Animated.View>
 
-					<TouchableOpacity
+					<Pressable
 						onPress={handleFavoritePress}
+                        onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
 						className="p-2"
-						{...buttonPress}
 					>
 						<Ionicons
 							name={isFavorited ? "heart" : "heart-outline"}
 							size={24}
 							color={isFavorited ? "#dc2626" : "#1f2937"}
 						/>
-					</TouchableOpacity>
+					</Pressable>
 				</View>
 			</View>
 
@@ -307,7 +307,6 @@ export default function RecipeDetail() {
 				onScroll={handleScroll}
 				scrollEventThrottle={16}
 			>
-				{/* Recipe Image Card - matching MealCard style */}
 				<View className="px-4 pt-4 mb-4">
 					<View
 						style={{

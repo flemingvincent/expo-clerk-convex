@@ -1,15 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, TouchableOpacity, Animated, ScrollView, Dimensions } from "react-native";
+import { View, Animated, ScrollView, Dimensions, Pressable } from "react-native";
 import { useRouter, Link } from "expo-router";
 import * as Haptics from 'expo-haptics';
-
-import Svg, { Text as SvgText } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "@/components/image";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { usePressAnimation } from "@/hooks/onPressAnimation";
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -27,7 +24,6 @@ export default function WelcomeScreen() {
         image: any;
     }
 
-	// Carousel data
 	const carouselData: CarouselItem[] = [
 		{
 			id: 1,
@@ -49,23 +45,11 @@ export default function WelcomeScreen() {
 		},
 	];
 
-    const buttonPress = usePressAnimation({
-		hapticStyle: 'Medium',
-		pressDistance: 4,
-	});
-
-	const signInPress = usePressAnimation({
-		hapticStyle: 'Light',
-		pressDistance: 2,
-	});
-
-	// Animation values - simplified
 	const contentOpacity = useRef(new Animated.Value(0)).current;
 	const contentTranslateY = useRef(new Animated.Value(20)).current;
 	const buttonOpacity = useRef(new Animated.Value(0)).current;
 	const buttonTranslateY = useRef(new Animated.Value(20)).current;
 
-	// Pagination dot animations
 	const dotAnimations = useRef(
 		carouselData.map(() => ({
 			scale: new Animated.Value(0.8),
@@ -74,7 +58,6 @@ export default function WelcomeScreen() {
 	).current;
 
 	useEffect(() => {
-		// Fast entrance animations - content first
 		const contentTimer = setTimeout(() => {
 			Animated.parallel([
 				Animated.timing(contentOpacity, {
@@ -90,7 +73,6 @@ export default function WelcomeScreen() {
 			]).start();
 		}, 100);
 
-		// Button entrance shortly after
 		const buttonTimer = setTimeout(() => {
 			Animated.parallel([
 				Animated.timing(buttonOpacity, {
@@ -106,7 +88,6 @@ export default function WelcomeScreen() {
 			]).start();
 		}, 300);
 
-		// Initialize pagination dots
 		updatePaginationDots(0);
 
 		return () => {
@@ -200,7 +181,6 @@ export default function WelcomeScreen() {
 
 	return (
 		<SafeAreaView className="flex flex-1 bg-lightgreen">
-			{/* Carousel Content */}
 			<View className="flex-1 justify-center">
 				<ScrollView
 					ref={scrollViewRef}
@@ -216,10 +196,9 @@ export default function WelcomeScreen() {
 					{carouselData.map((item, index) => renderCarouselItem(item, index))}
 				</ScrollView>
 
-				{/* Pagination Dots */}
 				<View className="flex-row justify-center items-center py-4">
 					{carouselData.map((_, index) => (
-						<TouchableOpacity
+						<Pressable
 							key={index}
 							onPress={() => {
 								scrollViewRef.current?.scrollTo({
@@ -237,12 +216,11 @@ export default function WelcomeScreen() {
 								}}
 								className="w-3 h-3 rounded-full bg-primary"
 							/>
-						</TouchableOpacity>
+						</Pressable>
 					))}
 				</View>
 			</View>
 
-			{/* Bottom Button Section */}
 			<Animated.View
 				className="px-4 pb-6 mt-6"
 			>
@@ -254,7 +232,7 @@ export default function WelcomeScreen() {
 						onPress={() => {							
 							router.push("/sign-up");
 						}}
-                        {...buttonPress}
+                        onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
 					>
 						<Text className="text-white !text-xl mr-2">
 							Get Started
@@ -265,11 +243,11 @@ export default function WelcomeScreen() {
 					<View className="flex-row">
 						<Text className="text-primary">Already have an account? </Text>
 						<Link href="/sign-in" asChild>
-							<TouchableOpacity
-                                {...signInPress}
+							<Pressable
+                                onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
 							>
 								<Text className="text-primary font-bold">Sign in</Text>
-							</TouchableOpacity>
+							</Pressable>
 						</Link>
 					</View>
 				</View>

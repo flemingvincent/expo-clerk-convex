@@ -29,7 +29,7 @@ export default function TabsLayout() {
 			<Tabs.Screen 
 				name="index" 
 				options={{ 
-					title: "Home",
+					title: "Plan",
 					tabBarIcon: ({ color, size }) => (
 						<Ionicons name="home" size={size} color={color} />
 					),
@@ -56,7 +56,7 @@ export default function TabsLayout() {
 			<Tabs.Screen 
 				name="cart" 
 				options={{ 
-					title: "Cart",
+					title: "Shop",
 					tabBarIcon: ({ color, size }) => (
 						<Ionicons name="cart" size={size} color={color} />
 					),

@@ -5,6 +5,7 @@ import {
 	Dimensions,
 	Easing,
 	Alert,
+    Pressable,
 } from "react-native";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { router } from "expo-router";
@@ -24,6 +25,7 @@ import PreferencesStep from "@/components/onboarding/PreferencesStep";
 import MealTypesStep from "@/components/onboarding/MealType";
 import { useUserPreferences } from "@/context/user-preferences-provider";
 import { useReferenceData } from "@/context/reference-data-provider";
+import * as Haptics from 'expo-haptics';
 
 const { width, height } = Dimensions.get("window");
 
@@ -409,8 +411,10 @@ const OnboardingScreen = () => {
 				<View className="flex-row justify-between items-center">
 					<View className="flex-row gap-2">
 						{currentStep > 0 && (
-							<TouchableOpacity
+							<Pressable
 								onPress={handlePrevious}
+                                onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
 								className="flex-row items-center bg-white/40 rounded-full px-4 py-2"
 								style={{
 									shadowColor: "#25551b",
@@ -424,12 +428,14 @@ const OnboardingScreen = () => {
 								<Text className="text-primary text-sm ml-1 font-medium">
 									Back
 								</Text>
-							</TouchableOpacity>
+							</Pressable>
 						)}
 
 						{isEditMode && (
-							<TouchableOpacity
+							<Pressable
 								onPress={handleExit}
+                                onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
 								className="flex-row items-center bg-red-100/80 rounded-full px-4 py-2"
 								style={{
 									shadowColor: "#25551b",
@@ -443,13 +449,15 @@ const OnboardingScreen = () => {
 								<Text className="text-red-600 text-sm ml-1 font-medium">
 									Cancel
 								</Text>
-							</TouchableOpacity>
+							</Pressable>
 						)}
 					</View>
 
 					{currentStep < steps.length - 1 && (
-						<TouchableOpacity
+						<Pressable
 							onPress={handleSkipStep}
+                            onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
 							className="flex-row items-center bg-white/40 rounded-full px-4 py-2"
 							style={{
 								shadowColor: "#25551b",
@@ -463,7 +471,7 @@ const OnboardingScreen = () => {
 								Skip
 							</Text>
 							<Ionicons name="chevron-forward" size={18} color="#25551b" />
-						</TouchableOpacity>
+						</Pressable>
 					)}
 				</View>
 

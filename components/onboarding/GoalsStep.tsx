@@ -8,6 +8,7 @@ import {
 	LayoutAnimation,
 	UIManager,
 	Platform,
+    Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Svg, { Text as SvgText } from "react-native-svg";
@@ -343,8 +344,9 @@ const GoalsStep: React.FC<GoalsStepProps> = ({
 						{/* Arrow control buttons */}
 						<View className="flex-row items-center gap-1">
 							<Animated.View style={{ transform: [{ scale: upButtonScale }] }}>
-								<TouchableOpacity
+								<Pressable
 									onPress={() => moveGoalUp(index)}
+									onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
 									disabled={isFirst || animatingIndex !== null}
 									className={`rounded-lg items-center justify-center ${
 										isFirst ? "bg-gray-100" : "bg-primary/10"
@@ -362,14 +364,15 @@ const GoalsStep: React.FC<GoalsStepProps> = ({
 										size={20}
 										color={isFirst ? "#00000020" : "#25551b"}
 									/>
-								</TouchableOpacity>
+								</Pressable>
 							</Animated.View>
 
 							<Animated.View
 								style={{ transform: [{ scale: downButtonScale }] }}
 							>
-								<TouchableOpacity
+								<Pressable
 									onPress={() => moveGoalDown(index)}
+                                    onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
 									disabled={isLast || animatingIndex !== null}
 									className={`rounded-lg items-center justify-center ${
 										isLast ? "bg-gray-100" : "bg-primary/10"
@@ -387,7 +390,7 @@ const GoalsStep: React.FC<GoalsStepProps> = ({
 										size={20}
 										color={isLast ? "#00000020" : "#25551b"}
 									/>
-								</TouchableOpacity>
+								</Pressable>
 							</Animated.View>
 						</View>
 					</View>

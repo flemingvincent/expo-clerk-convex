@@ -1,17 +1,16 @@
-import { View, ScrollView, TouchableOpacity } from "react-native";
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { View, ScrollView, Pressable } from "react-native";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
 import { MealCard } from "./MealCard";
-import { usePressAnimation } from "@/hooks/onPressAnimation";
 import { MealPlanItem } from "@/types/database";
 import { useMealPlan } from "@/context/meal-plan-provider";
 import { useWeeks } from "@/context/week-data-provider";
 import * as Haptics from "expo-haptics";
-import { useUserPreferences } from "@/context/user-preferences-provider";
 import { useAuth } from "@/context/supabase-provider";
+import React from "react";
 
 export const MealPlanSection = () => {
 	const router = useRouter();
@@ -55,7 +54,7 @@ export const MealPlanSection = () => {
 				console.error("Error loading meal plan:", error);
 			} finally {
 				setIsLoadingWeekPlan(false);
-				setIsTransitioningWeek(false); // Clear transition state
+				setIsTransitioningWeek(false);
 			}
 		})();
 	}, [selectedWeekId, dependenciesReady]);
@@ -63,11 +62,6 @@ export const MealPlanSection = () => {
 	const displayWeeks = useMemo(() => {
 		return getWeeksRange(-1, 3);
 	}, [weeks, getWeeksRange]);
-
-	const buttonPress = usePressAnimation({
-		hapticStyle: "Medium",
-		pressDistance: 4,
-	});
 
 	const handleMealPress = (meal: MealPlanItem) => {
 		console.log("pressed meal:", meal.recipe.name);
@@ -87,7 +81,6 @@ export const MealPlanSection = () => {
 			(week) => week.id === selectedWeekId,
 		);
 		if (currentIndex > 0) {
-			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 			const previousWeek = displayWeeks[currentIndex - 1];
 			setIsTransitioningWeek(true);
 			handleWeekPress(previousWeek.id);
@@ -99,7 +92,6 @@ export const MealPlanSection = () => {
 			(week) => week.id === selectedWeekId,
 		);
 		if (currentIndex < displayWeeks.length - 1) {
-			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 			const nextWeek = displayWeeks[currentIndex + 1];
 			setIsTransitioningWeek(true);
 			handleWeekPress(nextWeek.id);
@@ -109,7 +101,7 @@ export const MealPlanSection = () => {
 	const handleEditMeals = () => {
 		const selectedWeek = getWeekById(selectedWeekId!);
 		if (!selectedWeek) return;
-
+        
 		router.push({
 			pathname: "/meal-planner",
 			params: {
@@ -133,10 +125,6 @@ export const MealPlanSection = () => {
 
 	const displayMeals = currentMealPlan;
 	const selectedWeek = selectedWeekId ? getWeekById(selectedWeekId) : null;
-	const totalServings = displayMeals.reduce(
-		(sum, meal) => sum + meal.servings,
-		0,
-	);
 
 	const StickyCalendarSection = useMemo(() => {
 		const currentIndex = displayWeeks.findIndex(
@@ -145,7 +133,6 @@ export const MealPlanSection = () => {
 		const hasPrevious = currentIndex > 0;
 		const hasNext = currentIndex < displayWeeks.length - 1;
 
-		// Determine step states based on week
 		const getStepStates = () => {
 			if (!selectedWeek)
 				return {
@@ -248,55 +235,40 @@ export const MealPlanSection = () => {
 				}}
 			>
 				<View className="flex-row items-center justify-between px-4">
-					<TouchableOpacity
-						onPress={handlePreviousWeekClick}
-						disabled={!hasPrevious || isTransitioningWeek}
-						style={{
-							opacity: !hasPrevious || isTransitioningWeek ? 0.3 : 1,
-						}}
-						{...buttonPress}
-					>
-						<Ionicons name="chevron-back" size={24} color="#1f2937" />
-					</TouchableOpacity>
+					<Pressable
+                        onPress={handlePreviousWeekClick}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        disabled={!hasPrevious || isTransitioningWeek}
+                        style={{
+                            opacity: (!hasPrevious || isTransitioningWeek) ? 0.3 : 1,
+                        }}
+                        onPressIn={() => {Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)}}
+                    >
+                        <Ionicons name="chevron-back" size={24} color="#1f2937" />
+                    </Pressable>
+
 
 					<View className="flex-row items-center">
 						<Text className="text-xl text-gray-800 uppercase tracking-wide font-montserrat-bold">
 							{selectedWeek?.displayTitle}
 						</Text>
-						{isTransitioningWeek && (
-							<View className="ml-2">
-								<View
-									style={{
-										width: 16,
-										height: 16,
-										borderRadius: 8,
-										borderWidth: 2,
-										borderColor: "#25551b",
-										borderTopColor: "transparent",
-										borderRightColor: "transparent",
-										transform: [{ rotate: "45deg" }],
-									}}
-									className="animate-spin"
-								/>
-							</View>
-						)}
 					</View>
 
-					<TouchableOpacity
+					<Pressable
 						onPress={handleNextWeekClick}
+						hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
 						disabled={!hasNext || isTransitioningWeek}
-						style={{
-							opacity: !hasNext || isTransitioningWeek ? 0.3 : 1,
-						}}
-						{...buttonPress}
+                        style={{
+                            opacity: (!hasNext || isTransitioningWeek) ? 0.3 : 1,
+                        }}
+                        onPressIn={() => {Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)}}
 					>
 						<Ionicons name="chevron-forward" size={24} color="#1f2937" />
-					</TouchableOpacity>
+					</Pressable>
 				</View>
 
 				<View className="flex-row justify-center items-center px-12 pt-3">
 					{isTransitioningWeek ? (
-						// Loading state for progress bar
 						<View className="flex-1 flex-row justify-between items-center opacity-50">
 							{renderStep("Plan", "calendar-outline", stepStates.plan)}
 							<View
@@ -323,7 +295,6 @@ export const MealPlanSection = () => {
 							{renderStep("Review", "star-outline", stepStates.review)}
 						</View>
 					) : (
-						// Normal state
 						<View className="flex-1 flex-row justify-between items-center">
 							{renderStep("Plan", "calendar-outline", stepStates.plan)}
 							<View
@@ -361,7 +332,7 @@ export const MealPlanSection = () => {
 		selectedWeek,
 		handlePreviousWeekClick,
 		handleNextWeekClick,
-		isTransitioningWeek, // Add this dependency
+		isTransitioningWeek,
 	]);
 
 	if ((!dependenciesReady || loading) && !isLoadingWeekPlan) {
@@ -460,7 +431,6 @@ export const MealPlanSection = () => {
 							className="rounded-2xl overflow-hidden"
 						>
 							<View className="p-6 items-center">
-								{/* Error icon with your style */}
 								<View
 									style={{
 										width: 64,
@@ -474,24 +444,21 @@ export const MealPlanSection = () => {
 									<Ionicons name="alert-circle" size={28} color="#dc2626" />
 								</View>
 
-								{/* Title */}
 								<Text className="text-xl font-montserrat-bold text-gray-800 uppercase tracking-wide text-center mb-2">
 									Something Went Wrong
 								</Text>
 
-								{/* Error message */}
 								<Text className="text-sm font-montserrat-medium text-gray-600 text-center mb-6 px-4">
 									{error?.message ||
 										"We couldn't load your meals. Please try again."}
 								</Text>
 
-								{/* Action buttons */}
 								<View className="w-full gap-3">
 									<Button
 										variant="default"
 										onPress={handleGenerateNewPlan}
+                                        onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)}
 										className="w-full"
-										{...buttonPress}
 									>
 										<View className="flex-row items-center gap-2">
 											<Ionicons name="refresh" size={18} color="#25551b" />
@@ -504,7 +471,6 @@ export const MealPlanSection = () => {
 									<Button
 										variant="outline"
 										className="w-full border-2"
-										{...buttonPress}
 									>
 										<Text className="font-montserrat-semibold uppercase tracking-wide">
 											Browse Recipes Instead
@@ -593,7 +559,6 @@ export const MealPlanSection = () => {
 				</View>
 
 				{isTransitioningWeek ? (
-					// Loading state for meal cards
 					<ScrollView
 						horizontal
 						showsHorizontalScrollIndicator={false}
@@ -618,7 +583,6 @@ export const MealPlanSection = () => {
 								}}
 								className="mr-4 rounded-2xl overflow-hidden"
 							>
-								{/* Loading card image skeleton */}
 								<View className="p-2">
 									<View
 										className="aspect-[4/3] w-full rounded-xl"
@@ -639,7 +603,6 @@ export const MealPlanSection = () => {
 									</View>
 								</View>
 
-								{/* Loading card content skeleton */}
 								<View className="flex-1 p-4">
 									<View className="flex-row gap-2 mb-3">
 										<View
@@ -684,27 +647,16 @@ export const MealPlanSection = () => {
 						))}
 					</ScrollView>
 				) : displayMeals.length > 0 ? (
-					<ScrollView
-						horizontal
-						showsHorizontalScrollIndicator={false}
-						contentContainerStyle={{
-							paddingHorizontal: 16,
-							paddingRight: 32,
-							paddingBottom: 4,
-						}}
-						decelerationRate="fast"
-						snapToInterval={334}
-						snapToAlignment="start"
-					>
-						{displayMeals.map((meal: MealPlanItem, index: number) => (
-							<MealCard
-								key={meal.id}
-								recipe={meal}
-								width={320}
-								onPress={() => handleMealPress(meal)}
-							/>
-						))}
-					</ScrollView>
+                    <View className="px-4 gap-2">
+                        {displayMeals.map((meal: MealPlanItem, index: number) => (
+                            <MealCard
+                                key={meal.id}
+                                recipe={meal}
+                                isCollapsed={true}
+                                onPress={() => handleMealPress(meal)}
+                            />
+                        ))}
+                    </View>
 				) : (
 					<View className="px-4">
 						<View
@@ -718,7 +670,6 @@ export const MealPlanSection = () => {
 							className="rounded-2xl overflow-hidden"
 						>
 							<View className="p-6 items-center">
-								{/* Icon with your style */}
 								<View
 									style={{
 										width: 64,
@@ -732,27 +683,24 @@ export const MealPlanSection = () => {
 									<Ionicons name="restaurant" size={28} color="#25551b" />
 								</View>
 
-								{/* Title */}
 								<Text className="text-xl font-montserrat-bold text-gray-800 uppercase tracking-wide text-center mb-2">
 									{selectedWeek?.is_current_week
 										? "Ready to Plan"
 										: `Plan for ${selectedWeek?.displayTitle}`}
 								</Text>
 
-								{/* Description */}
 								<Text className="text-sm font-montserrat-medium text-gray-600 text-center mb-6 px-4">
 									{selectedWeek?.is_current_week
 										? "Let's create your personalized meal plan for this week"
 										: "Generate meals that match your taste preferences"}
 								</Text>
 
-								{/* Action buttons */}
 								<View className="w-full gap-3">
 									<Button
 										variant="default"
 										onPress={handleGenerateNewPlan}
+                                        onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)}
 										className="w-full"
-										{...buttonPress}
 									>
 										<View className="flex-row items-center gap-2">
 											<Ionicons name="sparkles" size={18} color="#25551b" />
@@ -765,7 +713,6 @@ export const MealPlanSection = () => {
 									<Button
 										variant="outline"
 										className="w-full border-2"
-										{...buttonPress}
 									>
 										<Text className="font-montserrat-semibold uppercase tracking-wide">
 											Browse Recipes
@@ -785,7 +732,6 @@ export const MealPlanSection = () => {
 								accessibilityRole="button"
 								accessibilityLabel="Add ingredients to cart"
 								accessibilityHint="Add ingredients for the selected meals to your cart"
-								{...buttonPress}
 							>
 								<Text>Checkout with grocer</Text>
 							</Button>
@@ -800,7 +746,7 @@ export const MealPlanSection = () => {
                                     accessibilityHint="Edit your meal plan and adjust servings"
                                     className="border-2"
                                     onPress={handleEditMeals}
-                                    {...buttonPress}
+                                    onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)}
                                 >
                                     <Text className="uppercase">Change meals</Text>
                                 </Button>
@@ -813,7 +759,6 @@ export const MealPlanSection = () => {
 								accessibilityRole="button"
 								accessibilityLabel="Review Meals"
 								accessibilityHint="Review the meals you have selected for this week"
-								{...buttonPress}
 							>
 								<Text>Review Meals</Text>
 							</Button>

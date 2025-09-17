@@ -1,22 +1,20 @@
-import { View, ScrollView, TouchableOpacity } from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { useState, useEffect } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
-import { usePressAnimation } from "@/hooks/onPressAnimation";
-import { EditMealCard } from "@/components/home-screen/EditMealCard";
 import { useMealPlan } from "@/context/meal-plan-provider";
 import { useWeeks } from "@/context/week-data-provider";
-import { useRecipes } from "@/context/recipe-data-provider";
 import { MealPlanItem, RecipeWithTags } from "@/types/database";
 import { MealCard } from "@/components/home-screen/MealCard";
+import * as Haptics from "expo-haptics";
 
 export default function MealPlannerScreen() {
 	const router = useRouter();
 	const params = useLocalSearchParams();
-	const { weekId, displayRange } = params;
+	const { weekId } = params;
 
 	const {
 		currentMealPlan,
@@ -25,27 +23,18 @@ export default function MealPlannerScreen() {
 		saveMealPlanForWeek,
 		loadMealPlanForWeek,
 		getAvailableRecipes,
-		addMealToPlan,
-		removeMealFromPlan,
-		updateMealServings,
-		regenerateMealPlan,
 	} = useMealPlan();
+
 
 	const { getWeekById } = useWeeks();
 
 	const loading = mealPlanLoading;
 	const error = mealPlanError;
-
-	const buttonPress = usePressAnimation({
-		hapticStyle: "Medium",
-		pressDistance: 4,
-	});
-
 	const selectedWeek = weekId ? getWeekById(weekId as string) : null;
 	const availableRecipes = getAvailableRecipes();
 
-	const [selectedMeals, setSelectedMeals] =
-		useState<MealPlanItem[]>(currentMealPlan);
+	const [originalMealPlan, setOriginalMealPlan] = useState<MealPlanItem[]>([]);
+	const [selectedMeals, setSelectedMeals] = useState<MealPlanItem[]>([]);
 	const [hasChanges, setHasChanges] = useState(false);
 	const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -59,70 +48,55 @@ export default function MealPlannerScreen() {
 		}
 	}, [weekId]);
 
-	useEffect(() => {
-		setSelectedMeals(currentMealPlan);
-		// Reset hasChanges when we get a fresh meal plan
+    useEffect(() => {
+		const clonedMealPlan = currentMealPlan.map(meal => ({
+			...meal,
+			recipe: { ...meal.recipe }
+		}));
+		
+		setOriginalMealPlan(clonedMealPlan);
+		setSelectedMeals(clonedMealPlan);
 		setHasChanges(false);
 	}, [currentMealPlan]);
 
-	const handleBack = () => {
+    const handleBack = () => {
 		if (hasChanges) {
-			// TODO: Add confirmation dialog
-			router.back();
-		} else {
-			router.back();
+			setSelectedMeals([...originalMealPlan]);
+			setHasChanges(false);
 		}
+		router.back();
 	};
 
-	const handleSaveChanges = async () => {
+    const handleCancel = () => {
+		setSelectedMeals([...originalMealPlan]);
+		setHasChanges(false);
+		router.back();
+	};
+
+    const handleSaveChanges = async () => {
 		if (!weekId) return;
 
 		try {
-			// Use the provider method to save
 			await saveMealPlanForWeek(weekId as string, selectedMeals);
 			console.log("Saved changes for week:", weekId);
 			setHasChanges(false);
+			setOriginalMealPlan([...selectedMeals]);
 			router.back();
 		} catch (error) {
 			console.error("Error saving meal plan:", error);
-			// Handle error - maybe show an alert
 		}
 	};
 
-	const handleRegeneratePlan = async () => {
-		if (!weekId) return;
-
-		try {
-			// This will regenerate and auto-save
-			await regenerateMealPlan(weekId as string);
-			setHasChanges(false); // Reset since we have a fresh saved plan
-		} catch (error) {
-			console.error("Error regenerating meal plan:", error);
-		}
-	};
-
-	const handleSwapMeal = (mealId: string) => {
-		// TODO: Implement meal swapping logic
-		console.log("Swapping meal:", mealId);
-		setHasChanges(true);
-	};
-
-	const handleRemoveMeal = (mealId: string) => {
-		// Update local state
+    const handleRemoveMeal = (mealId: string) => {
 		setSelectedMeals((prev) => prev.filter((meal) => meal.id !== mealId));
 		setHasChanges(true);
-
-		// Optionally update the provider's current meal plan
-		removeMealFromPlan(mealId);
 	};
 
-	const handleAddMeal = (recipe: RecipeWithTags) => {
-		// Check if meal is already selected
+    const handleAddMeal = (recipe: RecipeWithTags) => {
 		if (selectedMeals.some((meal) => meal.recipe.id === recipe.id)) {
 			return;
 		}
 
-		// Create a meal plan item from the recipe
 		const newMeal: MealPlanItem = {
 			id: `meal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
 			recipe,
@@ -133,7 +107,7 @@ export default function MealPlannerScreen() {
 		setHasChanges(true);
 	};
 
-	const handleServingsChange = (mealId: string, servings: number) => {
+    const handleServingsChange = (mealId: string, servings: number) => {
 		setSelectedMeals((prev) =>
 			prev.map((meal) => (meal.id === mealId ? { ...meal, servings } : meal)),
 		);
@@ -167,9 +141,9 @@ export default function MealPlannerScreen() {
 					</Text>
 					<Button
 						onPress={handleBack}
+						onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)}
 						variant="outline"
 						className="border-[#FF6525]"
-						{...buttonPress}
 					>
 						<Text className="text-[#FF6525] font-montserrat-semibold">
 							Go Back
@@ -184,28 +158,28 @@ export default function MealPlannerScreen() {
 		<SafeAreaView className="flex-1 bg-white">
 			<View className="bg-white border-b-2 border-b-[#EBEBEB]">
 				<View className="flex-row items-center justify-between px-4 py-3">
-					<TouchableOpacity
+					<Pressable
 						onPress={handleBack}
+                        onPressIn={() => {Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)}}
 						className="p-2"
-						{...buttonPress}
 					>
 						<Ionicons name="arrow-back" size={24} color="#1f2937" />
-					</TouchableOpacity>
+					</Pressable>
 
 					<Text className="text-lg font-montserrat-bold text-gray-800 uppercase tracking-wide">
 						Edit: {selectedWeek?.displayTitle || "Week"}
 					</Text>
 
-					<TouchableOpacity
+					<Pressable
 						onPress={handleSaveChanges}
+                        onPressIn={() => {Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)}}
 						disabled={!hasChanges}
 						className="p-2"
-						{...buttonPress}
 					>
 						<Text className="font-montserrat-semibold uppercase text-gray-800">
 							Save
 						</Text>
-					</TouchableOpacity>
+					</Pressable>
 				</View>
 
 				<View className="flex-row justify-center items-center px-12 pb-3">
@@ -311,10 +285,10 @@ export default function MealPlannerScreen() {
 							Your Selected Meals ({selectedMeals.length})
 						</Text>
 
-						<TouchableOpacity
+						<Pressable
 							onPress={() => setIsCollapsed(!isCollapsed)}
+                            onPressIn={() => {Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)}}
 							className="flex-row items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100"
-							{...buttonPress}
 						>
 							<Ionicons
 								name={isCollapsed ? "albums-outline" : "list-outline"}
@@ -324,7 +298,7 @@ export default function MealPlannerScreen() {
 							<Text className="text-sm font-montserrat-semibold text-gray-600">
 								{isCollapsed ? "Card View" : "List View"}
 							</Text>
-						</TouchableOpacity>
+						</Pressable>
 					</View>
 
 					{selectedMeals.length > 0 ? (
@@ -355,17 +329,15 @@ export default function MealPlannerScreen() {
 					)}
 				</View>
 
-				{/* Divider */}
 				<View className="h-px bg-gray-200 mx-4 my-6" />
 
-				{/* Available Recipes Section */}
 				<View className="px-4 pb-6">
 					<Text className="text-lg font-montserrat-bold text-gray-900 mb-3">
-						Available Recipes ({availableRecipes.length})
+						Explore Recipes
 					</Text>
 
 					<ScrollView horizontal showsHorizontalScrollIndicator={false}>
-						{availableRecipes.map((recipe) => {
+						{availableRecipes.filter((recipe) => !selectedMeals.some((meal) => meal.recipe.id === recipe.id)).map((recipe) => {
 							const tempMeal: MealPlanItem = {
 								id: recipe.id,
 								recipe: recipe,
@@ -393,8 +365,8 @@ export default function MealPlannerScreen() {
 					<Button
 						variant="outline"
 						className="flex-1"
-						onPress={handleBack}
-						{...buttonPress}
+						onPress={handleCancel}
+                        onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)}
 					>
 						<Text className="font-montserrat-semibold">Cancel</Text>
 					</Button>
@@ -402,7 +374,8 @@ export default function MealPlannerScreen() {
 						variant="default"
 						className="flex-1"
 						onPress={handleSaveChanges}
-						{...buttonPress}
+						onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)}
+                        disabled={!hasChanges}
 					>
 						<Text className="font-montserrat-semibold">Save Changes</Text>
 					</Button>

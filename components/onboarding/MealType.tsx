@@ -1,15 +1,15 @@
 // components/onboarding/MealTypesStep.tsx
 import React, { useRef, useEffect, useState } from "react";
-import { View, TouchableOpacity, ScrollView, Animated } from "react-native";
+import { View, TouchableOpacity, ScrollView, Animated, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Svg, { Text as SvgText } from "react-native-svg";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { SafeAreaView } from "@/components/safe-area-view";
-import { usePressAnimation } from "@/hooks/onPressAnimation";
 import { useReferenceData } from "@/context/reference-data-provider";
 import { FormData } from "@/constants/onboarding";
 import type { Tag } from "@/types/database";
+import * as Haptics from 'expo-haptics';
 
 interface MealTypesStepProps {
 	formData: FormData;
@@ -27,32 +27,17 @@ const MealTypesStep: React.FC<MealTypesStepProps> = ({
     const { tags, getTagsByType } = useReferenceData();
     const [mealTypeTags, setMealTypeTags] = useState<Tag[]>([]);
 	
-	// Animation setup similar to other screens
 	const contentOpacity = useRef(new Animated.Value(0)).current;
 	const contentTranslateY = useRef(new Animated.Value(20)).current;
 	const buttonOpacity = useRef(new Animated.Value(0)).current;
 	const buttonTranslateY = useRef(new Animated.Value(20)).current;
 
-	// Press animation for button
-	const buttonPress = usePressAnimation({
-		hapticStyle: "Medium",
-		pressDistance: 4,
-	});
-
-	// Press animation for meal type selection
-	const mealTypePress = usePressAnimation({
-		hapticStyle: "Light",
-		pressDistance: 2,
-	});
-
-	// Get meal type tags from the database
 	useEffect(() => {
         const filteredMealTypeTags = getTagsByType("meal_type");
         setMealTypeTags(filteredMealTypeTags);
 	}, [tags, getTagsByType]);
 
 	useEffect(() => {
-		// Content entrance animation
 		const contentTimer = setTimeout(() => {
 			Animated.parallel([
 				Animated.timing(contentOpacity, {
@@ -68,7 +53,6 @@ const MealTypesStep: React.FC<MealTypesStepProps> = ({
 			]).start();
 		}, 100);
 
-		// Button entrance animation
 		const buttonTimer = setTimeout(() => {
 			Animated.parallel([
 				Animated.timing(buttonOpacity, {
@@ -93,14 +77,12 @@ const MealTypesStep: React.FC<MealTypesStepProps> = ({
 	const toggleMealType = (mealTypeTag: Tag) => {
 		const currentUserPreferenceTags = formData.userPreferenceTags || [];
 		
-		// Check if this tag is already selected
 		const isCurrentlySelected = currentUserPreferenceTags.some(
 			pref => pref.tag_id === mealTypeTag.id
 		);
 
 		let updatedTags;
 		if (isCurrentlySelected) {
-			// Remove the tag
 			updatedTags = currentUserPreferenceTags.filter(
 				pref => pref.tag_id !== mealTypeTag.id
 			);
@@ -119,7 +101,6 @@ const MealTypesStep: React.FC<MealTypesStepProps> = ({
 		return currentUserPreferenceTags.some(pref => pref.tag_id === mealTypeTag.id);
 	};
 
-	// Count selected meal types for display
 	const selectedCount = mealTypeTags.filter(tag => isSelected(tag)).length;
 
 	return (
@@ -130,7 +111,6 @@ const MealTypesStep: React.FC<MealTypesStepProps> = ({
 				keyboardShouldPersistTaps="handled"
 				contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 16 }}
 			>
-				{/* Animated Title Section */}
 				<Animated.View
 					style={{
 						opacity: contentOpacity,
@@ -138,7 +118,6 @@ const MealTypesStep: React.FC<MealTypesStepProps> = ({
 					}}
 					className="items-center mt-8 mb-8"
 				>
-					{/* SVG Title matching signup style */}
 					<Svg width="320" height="60">
 						<SvgText
 							x="160"
@@ -165,7 +144,6 @@ const MealTypesStep: React.FC<MealTypesStepProps> = ({
 					)}
 				</Animated.View>
 
-				{/* Form Container matching signup style */}
 				<Animated.View
 					style={{
 						opacity: contentOpacity,
@@ -174,7 +152,6 @@ const MealTypesStep: React.FC<MealTypesStepProps> = ({
 					className="w-full bg-background/80 rounded-2xl p-6 shadow-md"
 				>
 					<View className="gap-4">
-						{/* Meal Type Selection Options */}
 						<View className="mb-4">
 							<Text className="text-primary text-base mb-4 ml-1 font-medium">
 								Choose all that apply
@@ -183,9 +160,10 @@ const MealTypesStep: React.FC<MealTypesStepProps> = ({
 							{mealTypeTags.length > 0 ? (
 								<View className="gap-3">
 									{mealTypeTags.map((mealTypeTag) => (
-										<TouchableOpacity
+										<Pressable
 											key={mealTypeTag.id}
 											onPress={() => toggleMealType(mealTypeTag)}
+                                            onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
 											className={`w-full p-4 rounded-xl border-2 ${
 												isSelected(mealTypeTag)
 													? "bg-primary/10 border-primary"
@@ -195,7 +173,6 @@ const MealTypesStep: React.FC<MealTypesStepProps> = ({
 											accessibilityLabel={`${isSelected(mealTypeTag) ? "Remove" : "Add"} ${mealTypeTag.name} meal type`}
 											accessibilityHint={`Toggle ${mealTypeTag.name} as a meal type preference`}
 											accessibilityState={{ selected: isSelected(mealTypeTag) }}
-											{...mealTypePress}
 										>
 											<View className="flex-row items-center justify-between">
 												<Text
@@ -214,7 +191,7 @@ const MealTypesStep: React.FC<MealTypesStepProps> = ({
 													</View>
 												)}
 											</View>
-										</TouchableOpacity>
+										</Pressable>
 									))}
 								</View>
 							) : (
@@ -238,6 +215,7 @@ const MealTypesStep: React.FC<MealTypesStepProps> = ({
 								size="lg"
 								variant="default"
 								onPress={onNext}
+                                onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
 								disabled={isLoading || mealTypeTags.length === 0}
 								className="w-full"
 								accessibilityRole="button"
@@ -247,7 +225,6 @@ const MealTypesStep: React.FC<MealTypesStepProps> = ({
 									disabled: isLoading || mealTypeTags.length === 0,
 									busy: isLoading,
 								}}
-								{...buttonPress}
 							>
 								<View className="flex-row items-center justify-center">
 									<Text className="text-primary text-xl mr-2 font-semibold">

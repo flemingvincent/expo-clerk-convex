@@ -1,8 +1,8 @@
 import React from "react";
-import { View, TouchableOpacity } from "react-native";
+import { View, TouchableOpacity, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/text";
-import { usePressAnimation } from "@/hooks/onPressAnimation";
+import * as Haptics from 'expo-haptics';
 
 interface CounterProps {
 	value: number;
@@ -21,40 +21,26 @@ const Counter = ({
 	min = 1,
 	max = 20,
 }: CounterProps) => {
-	// Press animations for buttons
-	const decrementPress = usePressAnimation({
-		hapticStyle: "Light",
-		pressDistance: 2,
-	});
-
-	const incrementPress = usePressAnimation({
-		hapticStyle: "Light",
-		pressDistance: 2,
-	});
 
 	const isMinDisabled = value <= min;
 	const isMaxDisabled = value >= max;
 
 	return (
 		<View className="mb-4">
-			{/* Label */}
 			<Text className="text-primary text-base mb-3 ml-1 font-medium">
 				{label}
 			</Text>
 
-			{/* Counter Container */}
 			<View className="bg-white/90 rounded-xl p-4 border border-primary/20">
 				<View className="flex-row items-center justify-between">
-					{/* Value Display */}
 					<View className="flex-1 items-center">
 						<Text className="text-primary text-3xl font-bold">{value}</Text>
 					</View>
 
-					{/* Controls */}
 					<View className="flex-row items-center">
-						{/* Decrement Button */}
-						<TouchableOpacity
+						<Pressable
 							onPress={onDecrement}
+                            onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
 							disabled={isMinDisabled}
 							className={`h-12 w-12 rounded-full items-center justify-center mr-3 ${
 								isMinDisabled
@@ -65,18 +51,17 @@ const Counter = ({
 							accessibilityLabel={`Decrease ${label}`}
 							accessibilityHint={`Decrease the number of ${label} by 1`}
 							accessibilityState={{ disabled: isMinDisabled }}
-							{...(!isMinDisabled ? decrementPress : {})}
 						>
 							<Ionicons
 								name="remove"
 								size={24}
 								color={isMinDisabled ? "#9CA3AF" : "#25551B"}
 							/>
-						</TouchableOpacity>
+						</Pressable>
 
-						{/* Increment Button */}
-						<TouchableOpacity
+						<Pressable
 							onPress={onIncrement}
+                            onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
 							disabled={isMaxDisabled}
 							className={`h-12 w-12 rounded-full items-center justify-center ${
 								isMaxDisabled
@@ -87,14 +72,13 @@ const Counter = ({
 							accessibilityLabel={`Increase ${label}`}
 							accessibilityHint={`Increase the number of ${label} by 1`}
 							accessibilityState={{ disabled: isMaxDisabled }}
-							{...(!isMaxDisabled ? incrementPress : {})}
 						>
 							<Ionicons
 								name="add"
 								size={24}
 								color={isMaxDisabled ? "#9CA3AF" : "#fff"}
 							/>
-						</TouchableOpacity>
+						</Pressable>
 					</View>
 				</View>
 			</View>
