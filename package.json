@@ -11,6 +11,7 @@
 		"types:generate": "supabase gen types typescript --linked > ./types/supabase.ts"
 	},
 	"dependencies": {
+		"@expo/metro-runtime": "~6.1.2",
 		"@hookform/resolvers": "^5.0.1",
 		"@react-native-async-storage/async-storage": "2.2.0",
 		"@rn-primitives/label": "^1.1.0",
@@ -45,6 +46,7 @@
 		"react-native-svg": "15.12.1",
 		"react-native-url-polyfill": "^2.0.0",
 		"react-native-web": "^0.21.0",
+		"react-native-worklets": "0.5.1",
 		"tailwind-merge": "^3.2.0",
 		"tailwindcss": "~3.4.17",
 		"zod": "^3.24.3"

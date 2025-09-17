@@ -38,7 +38,7 @@
         "foregroundImage": "./assets/mealmate-logo.png"
       },
       "splash": {
-        "image": "/assets/mealmate-logo.png",
+        "image": "./assets/mealmate-logo.png",
         "resizeMode": "cover",
         "backgroundColor": "#E2F380"
       }

@@ -458,7 +458,7 @@ export const MealCard = ({
 												onPress={() => onAdd(recipe.id)}
 												{...buttonPress}
 											>
-												<Text className="text-[#25551b] font-montserrat-semibold uppercase tracking-wide">
+												<Text className="text-[#25551b] font-montserrat-bold uppercase tracking-wide">
 													Add to Plan
 												</Text>
 											</Button>

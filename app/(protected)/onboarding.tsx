@@ -241,7 +241,7 @@ const SuccessAnimation = ({
 	);
 };
 
-export const OnboardingScreen = () => {
+const OnboardingScreen = () => {
 	const { session, profile, updateProfile } = useAuth();
 	const {
 		preferences: userPreferences,
@@ -581,3 +581,5 @@ export const OnboardingScreen = () => {
 		</>
 	);
 }
+
+export default OnboardingScreen;

@@ -29,7 +29,7 @@ const formSchema = z.object({
 		.max(64, "Please enter fewer than 64 characters."),
 });
 
-export const SignIn = () => {
+const SignIn = () => {
 	const { signIn } = useAuth();
 	const router = useRouter();
 
@@ -200,3 +200,5 @@ export const SignIn = () => {
 		</SafeAreaView>
 	);
 }
+
+export default SignIn;

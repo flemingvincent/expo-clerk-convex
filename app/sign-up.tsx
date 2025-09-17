@@ -47,7 +47,7 @@ const formSchema = z
 		path: ["confirmPassword"],
 	});
 
-export const SignUp = () => {
+const SignUp = () => {
 	const { signUp } = useAuth();
 	const router = useRouter();
 
@@ -242,3 +242,5 @@ export const SignUp = () => {
 		</SafeAreaView>
 	);
 }
+
+export default SignUp;
