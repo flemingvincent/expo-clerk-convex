@@ -50,35 +50,31 @@ export default function Cart() {
 			<ScrollView className="flex-1 p-4">
 				<H1 className="mb-2">Shopping Cart</H1>
 				<Muted className="mb-4">
-					{totalIngredients} ingredient{totalIngredients !== 1 ? "s" : ""} from{" "}
-					{ingredients.reduce((acc, item) => acc + item.recipes.length, 0)}{" "}
-					recipe instances
+					{totalIngredients} ingredient{totalIngredients !== 1 ? "s" : ""}
 				</Muted>
 
 				<View className="gap-y-2">
 					{ingredients.map((item) => (
-						<View key={`${item.ingredient_id}_${item.unit_id}`}>
-							<View className="p-4">
-								<View>
-									<Text className="font-semibold text-base">
-										{item.ingredient_name}
-									</Text>
-									<Text className="text-sm text-muted-foreground mt-1">
-										{formatQuantity(
-											item.total_quantity,
-											item.unit_abbreviation,
-											item.unit_name
-										)}
-									</Text>
-									<View className="mt-2">
-										{item.recipes.map((recipe, index) => (
-											<Muted key={`${recipe.recipe_id}_${index}`} className="text-xs">
-												• {recipe.recipe_name} ({recipe.servings} servings)
-											</Muted>
-										))}
-									</View>
-								</View>
-							</View>
+						<View key={`${item.ingredient_id}_${item.unit_id}`}
+                            className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                            <Text className="font-semibold text-base text-gray-900">
+								{item.ingredient_name}
+							</Text>
+                            <Text className="text-sm text-gray-600 mt-1">
+								{formatQuantity(
+									item.total_quantity,
+									item.unit_abbreviation,
+									item.unit_name
+								)}
+							</Text>
+
+                            <View className="mt-2">
+                                {item.recipes.map((recipe, index) => (
+                                    <Muted key={`${recipe.recipe_id}_${index}`} className="text-xs">
+                                        • {recipe.recipe_name} ({recipe.servings} servings)
+                                    </Muted>
+                                ))}
+                            </View>
 						</View>
 					))}
 				</View>

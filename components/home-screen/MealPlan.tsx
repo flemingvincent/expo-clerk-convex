@@ -728,6 +728,8 @@ export const MealPlanSection = () => {
 					<View className="px-4 flex-1 gap-4 mt-2">
 						{selectedWeek.is_current_week && (
 							<Button
+                                onPress={() => router.push('/cart')}
+                                onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)}
 								variant="default"
 								accessibilityRole="button"
 								accessibilityLabel="Add ingredients to cart"
