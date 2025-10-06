@@ -137,6 +137,7 @@ export type Database = {
       }
       ingredients: {
         Row: {
+          category_id: string | null
           created_at: string
           id: string
           image_url: string | null
@@ -144,6 +145,7 @@ export type Database = {
           unit_id: string | null
         }
         Insert: {
+          category_id?: string | null
           created_at?: string
           id?: string
           image_url?: string | null
@@ -151,6 +153,7 @@ export type Database = {
           unit_id?: string | null
         }
         Update: {
+          category_id?: string | null
           created_at?: string
           id?: string
           image_url?: string | null

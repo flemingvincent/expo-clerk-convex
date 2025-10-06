@@ -3,7 +3,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import {
 	View,
 	ScrollView,
-	TouchableOpacity,
 	Image,
 	Dimensions,
 	ActivityIndicator,
@@ -40,10 +39,12 @@ export default function RecipeDetail() {
 	const [servings, setServings] = useState(preferences?.serves_per_meal ?? 2);
 	const [tab, setTab] = useState<"ingredients" | "instructions">("ingredients");
 
-	// Add state for tracking scroll position and title visibility
-	const [showHeaderTitle, setShowHeaderTitle] = useState(false);
 	const scrollY = useRef(new Animated.Value(0)).current;
-	const titleOpacity = useRef(new Animated.Value(0)).current;
+	const headerOpacity = scrollY.interpolate({
+		inputRange: [0, 100],
+		outputRange: [0, 1],
+		extrapolate: "clamp",
+	});
 
 	// Get dynamic colors based on recipe tags
 	const colors = recipe
@@ -63,28 +64,6 @@ export default function RecipeDetail() {
 		setTab(toTab);
 	};
 
-	// Handle scroll events to show/hide header title
-	const handleScroll = Animated.event(
-		[{ nativeEvent: { contentOffset: { y: scrollY } } }],
-		{
-			useNativeDriver: false,
-			listener: (event: any) => {
-				const offsetY = event.nativeEvent.contentOffset.y;
-				// Show title when scrolled past the main title (approximately 500px)
-				const shouldShowTitle = offsetY > 500;
-
-				if (shouldShowTitle !== showHeaderTitle) {
-					setShowHeaderTitle(shouldShowTitle);
-					Animated.timing(titleOpacity, {
-						toValue: shouldShowTitle ? 1 : 0,
-						duration: 200,
-						useNativeDriver: true,
-					}).start();
-				}
-			},
-		},
-	);
-
 	useEffect(() => {
 		fetchRecipe();
 	}, [id]);
@@ -96,7 +75,6 @@ export default function RecipeDetail() {
 			setLoading(true);
 			setError(null);
 
-			// Fetch recipe with tags
 			const { data: recipe, error: recipeError } = await supabase
 				.from("recipe")
 				.select(
@@ -116,7 +94,6 @@ export default function RecipeDetail() {
 				return;
 			}
 
-			// Transform recipe data to include tagIds
 			const recipeWithTags = {
 				...recipe,
 				tagIds:
@@ -175,7 +152,11 @@ export default function RecipeDetail() {
 		return ingredient?.name || ingredientId;
 	};
 
-	// Helper function to get unit info by id
+	const getIngredientImageUrl = (ingredientId: string) => {
+		const ingredient = ingredients.find((ing) => ing.id === ingredientId);
+		return ingredient?.image_url || null;
+	};
+
 	const getUnitInfo = (unitId?: string) => {
 		if (!unitId) return null;
 		const unit = units.find((u) => u.id === unitId);
@@ -190,7 +171,6 @@ export default function RecipeDetail() {
 
 		if (!unitInfo) return formattedQuantity;
 
-		// Use abbreviation if available, otherwise use full name
 		const unitDisplay = unitInfo.abbreviation || unitInfo.name;
 		return `${formattedQuantity} ${unitDisplay}`;
 	};
@@ -254,40 +234,90 @@ export default function RecipeDetail() {
 	}
 
 	return (
-		<SafeAreaView className="flex-1 bg-white" edges={["top"]}>
-			<View className="bg-white border-b-2 border-b-[#EBEBEB]">
-				<View className="flex-row items-center justify-between px-4 py-3">
-					<Pressable
-						onPress={handleBackPress}
-                        onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-						className="p-2"
-					>
-						<Ionicons name="arrow-back" size={24} color="#1f2937" />
-					</Pressable>
+		<View className="flex-1 bg-white">
+			{/* Floating Header */}
+			<Animated.View
+				style={{
+					position: "absolute",
+					top: 0,
+					left: 0,
+					right: 0,
+					zIndex: 10,
+					backgroundColor: "white",
+					opacity: headerOpacity,
+				}}
+				className="border-b-2 border-b-[#EBEBEB]"
+			>
+				<SafeAreaView edges={["top"]}>
+					<View className="flex-row items-center justify-between px-4 py-3">
+						<Pressable
+							onPress={handleBackPress}
+							onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+							hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+							className="p-2"
+						>
+							<Ionicons name="arrow-back" size={24} color="#1f2937" />
+						</Pressable>
 
-					<Animated.View
-						style={{
-							opacity: titleOpacity,
-							flex: 1,
-							marginHorizontal: 8,
-						}}
-						pointerEvents={showHeaderTitle ? "auto" : "none"}
-					>
 						<Text
-							className="text-lg font-montserrat-bold text-center text-gray-800 uppercase tracking-wide"
+							className="text-lg font-montserrat-bold text-center text-gray-800 uppercase tracking-wide flex-1 mx-2"
 							numberOfLines={1}
 							ellipsizeMode="tail"
 						>
 							{recipe.name}
 						</Text>
-					</Animated.View>
+
+						<Pressable
+							onPress={handleFavoritePress}
+							onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+							hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+							className="p-2"
+						>
+							<Ionicons
+								name={isFavorited ? "heart" : "heart-outline"}
+								size={24}
+								color={isFavorited ? "#dc2626" : "#1f2937"}
+							/>
+						</Pressable>
+					</View>
+				</SafeAreaView>
+			</Animated.View>
+
+			{/* Floating Action Buttons */}
+			<SafeAreaView edges={["top"]} style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 9 }}>
+				<View className="flex-row items-center justify-between px-4 py-3">
+					<Pressable
+						onPress={handleBackPress}
+						onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+						hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+						style={{
+							backgroundColor: "white",
+							borderRadius: 12,
+							padding: 8,
+							shadowColor: "#000",
+							shadowOffset: { width: 0, height: 2 },
+							shadowOpacity: 0.1,
+							shadowRadius: 4,
+							elevation: 3,
+						}}
+					>
+						<Ionicons name="arrow-back" size={24} color="#1f2937" />
+					</Pressable>
 
 					<Pressable
 						onPress={handleFavoritePress}
-                        onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-						className="p-2"
+						onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+						hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+						style={{
+							backgroundColor: "white",
+							borderRadius: 12,
+							padding: 8,
+							shadowColor: "#000",
+							shadowOffset: { width: 0, height: 2 },
+							shadowOpacity: 0.1,
+							shadowRadius: 4,
+							elevation: 3,
+						}}
 					>
 						<Ionicons
 							name={isFavorited ? "heart" : "heart-outline"}
@@ -296,211 +326,150 @@ export default function RecipeDetail() {
 						/>
 					</Pressable>
 				</View>
-			</View>
+			</SafeAreaView>
 
 			<Animated.ScrollView
-				className="flex-1 bg-white"
+				className="flex-1"
 				showsVerticalScrollIndicator={false}
-				onScroll={handleScroll}
+				onScroll={Animated.event(
+					[{ nativeEvent: { contentOffset: { y: scrollY } } }],
+					{ useNativeDriver: true }
+				)}
 				scrollEventThrottle={16}
 			>
-				<View className="px-4 pt-4 mb-4">
-					<View
-						style={{
-							backgroundColor: "#FFFFFF",
-							borderWidth: 2,
-							borderColor: "#EBEBEB",
-							borderBottomWidth: 6,
-							borderBottomColor: "#EBEBEB",
-						}}
-						className="rounded-2xl overflow-hidden"
-					>
-						<View className="relative p-2">
-							<View
-								className="aspect-[4/3] w-full overflow-hidden rounded-xl"
-								style={{
-									shadowColor: "#000000",
-									shadowOffset: { width: 0, height: 0 },
-									shadowOpacity: 0.3,
-									shadowRadius: 8,
-									elevation: 8,
-								}}
-							>
-								{recipe.image_url ? (
-									<Image
-										source={{ uri: recipe.image_url }}
-										style={{ width: "100%", height: "100%" }}
-										resizeMode="cover"
-									/>
-								) : (
-									<View
-										className="w-full h-full items-center justify-center"
-										style={{ backgroundColor: colors.background }}
-									>
-										<Ionicons
-											name="restaurant-outline"
-											size={80}
-											color={colors.text}
-											style={{ opacity: 0.3 }}
-										/>
-									</View>
-								)}
-							</View>
+				{/* Full Width Hero Image */}
+				<View className="w-full" style={{ height: screenWidth }}>
+					{recipe.image_url ? (
+						<Image
+							source={{ uri: recipe.image_url }}
+							style={{ width: "100%", height: "100%" }}
+							resizeMode="cover"
+						/>
+					) : (
+						<View
+							className="w-full h-full items-center justify-center"
+							style={{ backgroundColor: colors.background }}
+						>
+							<Ionicons
+								name="restaurant-outline"
+								size={80}
+								color={colors.text}
+								style={{ opacity: 0.3 }}
+							/>
 						</View>
+					)}
+				</View>
 
-						{/* Recipe Info */}
-						<View className="p-4">
-							{/* Title */}
-							<Text
-								className="text-2xl font-montserrat-bold text-gray-700 mb-2"
-								style={{ lineHeight: 30 }}
-							>
-								{recipe.name}
-							</Text>
+				{/* Recipe Info Section */}
+				<View className="px-6 pt-6 pb-4">
+					<Text
+						className="text-3xl font-montserrat-bold text-gray-800 mb-3"
+						style={{ lineHeight: 38 }}
+					>
+						{recipe.name}
+					</Text>
 
-							{/* Description */}
-							{recipe.description && (
-								<Text className="text-base font-montserrat-medium leading-6 text-gray-500 mb-3">
-									{recipe.description}
+					{recipe.description && (
+						<Text className="text-base font-montserrat-medium leading-6 text-gray-600 mb-4">
+							{recipe.description}
+						</Text>
+					)}
+
+					{/* Stats */}
+					<View className="flex-row justify-between mt-6 mb-4">
+						{recipe.prep_time && (
+							<View className="items-start">
+								<Text className="text-xs font-montserrat-bold uppercase tracking-wider text-gray-400 mb-1">
+									Prep Time
 								</Text>
-							)}
+								<Text className="text-2xl font-montserrat-bold text-gray-800">
+									{recipe.prep_time}<Text className="text-base text-gray-500">m</Text>
+								</Text>
+							</View>
+						)}
 
-							{/* Stats Pills - Using recipe's color scheme */}
-							<ScrollView
-								horizontal
-								showsHorizontalScrollIndicator={false}
-								className="mb-3 -mx-4 px-4"
-								contentContainerStyle={{ paddingRight: 16 }}
-							>
-								<View className="flex-row gap-2">
-									{recipe.prep_time && (
-										<View
-											style={{
-												backgroundColor: colors.background,
-												borderWidth: 2,
-												borderColor: colors.text,
-												borderBottomWidth: 3,
-												borderBottomColor: colors.text,
-											}}
-											className="py-2 px-3 gap-1.5 flex-row justify-center items-center rounded-lg"
-										>
-											<Ionicons name="time-outline" size={14} color={colors.text} />
-											<Text className="text-xs font-montserrat-bold uppercase tracking-wide" style={{ color: colors.text }}>
-												{recipe.prep_time}m prep
-											</Text>
-										</View>
-									)}
+						{recipe.cook_time && (
+							<View className="items-start">
+								<Text className="text-xs font-montserrat-bold uppercase tracking-wider text-gray-400 mb-1">
+									Cook Time
+								</Text>
+								<Text className="text-2xl font-montserrat-bold text-gray-800">
+									{recipe.cook_time}<Text className="text-base text-gray-500">m</Text>
+								</Text>
+							</View>
+						)}
 
-									{recipe.cook_time && (
-										<View
-											style={{
-												backgroundColor: colors.background,
-												borderWidth: 2,
-												borderColor: colors.text,
-												borderBottomWidth: 3,
-												borderBottomColor: colors.text,
-											}}
-											className="py-2 px-3 gap-1.5 flex-row justify-center items-center rounded-lg"
-										>
-											<Ionicons name="flame-outline" size={14} color={colors.text} />
-											<Text className="text-xs font-montserrat-bold uppercase tracking-wide" style={{ color: colors.text }}>
-												{recipe.cook_time}m cook
-											</Text>
-										</View>
-									)}
-
-									<View
-										style={{
-											backgroundColor: colors.background,
-											borderWidth: 2,
-											borderColor: colors.text,
-											borderBottomWidth: 3,
-											borderBottomColor: colors.text,
-										}}
-										className="py-2 px-3 gap-1.5 flex-row justify-center items-center rounded-lg"
-									>
-										<Ionicons name="star" size={14} color={colors.text} />
-										<Text className="text-xs font-montserrat-bold uppercase tracking-wide" style={{ color: colors.text }}>
-											Easy
-										</Text>
-									</View>
-
-									{/* Placeholder for future tags - these can be dynamically added later */}
-									{/* Example of how additional tags could be added:
-									<View
-										style={{
-											backgroundColor: colors.background,
-											borderWidth: 2,
-											borderColor: colors.text,
-											borderBottomWidth: 3,
-											borderBottomColor: colors.text,
-										}}
-										className="py-2 px-3 gap-1.5 flex-row justify-center items-center rounded-lg"
-									>
-										<Ionicons name="leaf-outline" size={14} color={colors.text} />
-										<Text className="text-xs font-montserrat-bold uppercase tracking-wide" style={{ color: colors.text }}>
-											Vegetarian
-										</Text>
-									</View>
-									*/}
-								</View>
-							</ScrollView>
+						<View className="items-start">
+							<Text className="text-xs font-montserrat-bold uppercase tracking-wider text-gray-400 mb-1">
+								Difficulty
+							</Text>
+							<Text className="text-2xl font-montserrat-bold text-gray-800">
+								Easy
+							</Text>
 						</View>
 					</View>
 				</View>
 
-				{/* Servings Adjuster - matching MealCard style */}
-				<View className="px-4 mb-4">
-					<View className="items-center">
-						<View
-							className="w-full bg-white border-[#EBEBEB] flex-row justify-between items-center rounded-xl overflow-hidden"
-							style={{
-								borderWidth: 2,
-								borderBottomWidth: 3,
-								height: 50,
-							}}
-						>
+				{/* Divider */}
+				<View className="h-2 bg-gray-100 mb-6" />
+
+				{/* Servings Adjuster */}
+				<View className="px-6 mb-6">
+					<View className="flex-row items-center justify-between">
+						<View>
+							<Text className="text-xs font-montserrat-bold uppercase tracking-wider text-gray-400 mb-1">
+								Servings
+							</Text>
+							<Text className="text-2xl font-montserrat-bold text-gray-800">
+								{servings}
+							</Text>
+						</View>
+
+						<View className="flex-row gap-2">
 							<Pressable
 								onPress={() => adjustServings(false)}
 								disabled={servings <= 1}
-								className="h-full px-4 items-center justify-center border-r-2 border-[#EBEBEB]"
-								style={({ pressed }) => ({
-									transform: [{ translateY: pressed && servings > 1 ? 2 : 0 }],
-								})}
+								style={{
+									backgroundColor: servings <= 1 ? "#F3F4F6" : "#FFFFFF",
+									borderWidth: 2,
+									borderColor: servings <= 1 ? "#E5E7EB" : "#5C5C5C",
+									borderBottomWidth: servings <= 1 ? 2 : 4,
+								}}
+								className="w-12 h-12 rounded-xl items-center justify-center"
 							>
 								<Ionicons
 									name="remove"
-									size={18}
+									size={22}
 									color={servings <= 1 ? "#B0B0B0" : "#4b5563"}
 								/>
 							</Pressable>
 
-							<View className="px-4 justify-center">
-								<Text className="text-lg font-montserrat-bold text-gray-600 uppercase tracking-wide">
-									{servings} SERVING{servings > 1 ? "S" : ""}
-								</Text>
-							</View>
-
 							<Pressable
 								onPress={() => adjustServings(true)}
-								className="h-full px-4 items-center justify-center border-l-2 border-[#EBEBEB]"
-								style={({ pressed }) => ({
-									transform: [{ translateY: pressed ? 2 : 0 }],
-								})}
+								style={{
+									backgroundColor: "#FFFFFF",
+									borderWidth: 2,
+									borderColor: "#5C5C5C",
+									borderBottomWidth: 4,
+								}}
+								className="w-12 h-12 rounded-xl items-center justify-center"
 							>
-								<Ionicons name="add" size={18} color="#4b5563" />
+								<Ionicons name="add" size={22} color="#4b5563" />
 							</Pressable>
 						</View>
 					</View>
 				</View>
 
+				{/* Divider */}
+				<View className="h-2 bg-gray-100 mb-6" />
+
 				{/* Tab Buttons */}
-				<View className="px-4 mb-4">
-					<View className="flex-row gap-2">
+				<View className="px-6 mb-6">
+					<View className="flex-row gap-3">
 						<Button
 							variant={tab === "ingredients" ? "default" : "outline"}
 							onPress={() => handleTabChange("ingredients")}
-                            onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+							onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
 							className="flex-1"
 						>
 							<Text className="font-montserrat-bold tracking-wide uppercase">
@@ -510,7 +479,7 @@ export default function RecipeDetail() {
 						<Button
 							variant={tab === "instructions" ? "default" : "outline"}
 							onPress={() => handleTabChange("instructions")}
-                            onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+							onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
 							className="flex-1"
 						>
 							<Text className="font-montserrat-bold tracking-wide uppercase">
@@ -520,22 +489,16 @@ export default function RecipeDetail() {
 					</View>
 				</View>
 
-				{/* Content based on tab */}
-				<View className="px-4 pb-6">
+				{/* Content */}
+				<View className="px-6 pb-6">
 					{/* Ingredients */}
 					{tab === "ingredients" && recipeIngredients.length > 0 && (
-						<View
-							style={{
-								backgroundColor: "#FFFFFF",
-								borderWidth: 2,
-								borderColor: "#EBEBEB",
-								borderBottomWidth: 6,
-								borderBottomColor: "#EBEBEB",
-							}}
-							className="rounded-2xl p-4"
-						>
+						<View>
 							{recipeIngredients.map((recipeIngredient, index) => {
 								const ingredientName = getIngredientName(
+									recipeIngredient.ingredient_id,
+								);
+								const ingredientImageUrl = getIngredientImageUrl(
 									recipeIngredient.ingredient_id,
 								);
 								const unitInfo = getUnitInfo(recipeIngredient.unit_id);
@@ -550,24 +513,32 @@ export default function RecipeDetail() {
 								return (
 									<View
 										key={index}
-										className="flex-row items-start py-3 border-b border-gray-200 last:border-b-0"
+										className="flex-row items-center py-4 border-b border-gray-200"
 									>
-										<View
-											className="w-6 h-6 rounded-md mr-3 mt-0.5 items-center justify-center"
+										<View 
+											className="w-12 h-12 rounded-xl items-center justify-center mr-4 p-2"
 											style={{ 
-												backgroundColor: colors.background,
-												borderWidth: 1,
-												borderColor: colors.text,
+												backgroundColor: "#FFFFFF",
+												borderWidth: 2,
+												borderColor: "#5C5C5C",
 											}}
 										>
-											<Ionicons name="checkmark" size={12} color={colors.text} />
+											{ingredientImageUrl ? (
+												<Image
+													source={{ uri: ingredientImageUrl }}
+													className="w-full h-full"
+													resizeMode="contain"
+												/>
+											) : (
+												<Ionicons name="nutrition-outline" size={20} color="#9CA3AF" />
+											)}
 										</View>
 										<View className="flex-1">
-											<Text className="text-base font-montserrat-bold text-gray-700">
+											<Text className="text-lg font-montserrat-bold text-gray-800 mb-1">
 												{ingredientName}
 											</Text>
 											{quantityDisplay && (
-												<Text className="text-sm font-montserrat-medium mt-1 text-gray-500">
+												<Text className="text-base font-montserrat-medium text-gray-500">
 													{quantityDisplay}
 												</Text>
 											)}
@@ -580,54 +551,48 @@ export default function RecipeDetail() {
 
 					{/* Instructions */}
 					{tab === "instructions" && instructions.length > 0 && (
-						<View
-							style={{
-								backgroundColor: "#FFFFFF",
-								borderWidth: 2,
-								borderColor: "#EBEBEB",
-								borderBottomWidth: 6,
-								borderBottomColor: "#EBEBEB",
-							}}
-							className="rounded-2xl p-4"
-						>
+						<View>
 							{instructions.map((instruction, index) => (
 								<View
 									key={index}
-									className="flex-col justify-center items-center py-4 border-b border-gray-200 last:border-b-0"
+									className="py-6 border-b border-gray-200"
 								>
-									{/* image or step number fallback */}
-									<View className="w-24 h-24 mb-3">
-										{instruction.image_url ? (
-											<Image
-												source={{ uri: instruction.image_url }}
-												className="w-full h-full rounded-lg"
-												resizeMode="cover"
-											/>
-										) : (
-											<View 
-												className="w-full h-full rounded-full items-center justify-center"
-												style={{
-													backgroundColor: colors.background,
-													borderWidth: 2,
-													borderColor: colors.text,
-												}}
-											>
-												<Text className="text-2xl font-montserrat-bold" style={{ color: colors.text }}>
-													{index + 1}
+									<View className="flex-row items-start mb-4">
+										<View className="mr-4">
+											{instruction.image_url ? (
+												<Image
+													source={{ uri: instruction.image_url }}
+													className="w-20 h-20 rounded-xl"
+													resizeMode="cover"
+												/>
+											) : (
+												<View 
+													className="w-20 h-20 rounded-full items-center justify-center"
+													style={{
+														backgroundColor: colors.background,
+														borderWidth: 2,
+														borderColor: colors.text,
+													}}
+												>
+													<Text className="text-2xl font-montserrat-bold" style={{ color: colors.text }}>
+														{index + 1}
+													</Text>
+												</View>
+											)}
+										</View>
+
+										<View className="flex-1">
+											{instruction.step_title && (
+												<Text className="text-xl font-montserrat-bold mb-2 text-gray-800">
+													{instruction.step_title}
 												</Text>
-											</View>
-										)}
+											)}
+
+											<Text className="text-base leading-6 font-montserrat-medium text-gray-600">
+												{instruction.instruction}
+											</Text>
+										</View>
 									</View>
-
-									{instruction.step_title && (
-										<Text className="w-full text-center text-lg font-montserrat-bold mb-2 text-gray-700">
-											{instruction.step_title}
-										</Text>
-									)}
-
-									<Text className="text-base leading-6 font-montserrat-medium text-gray-600 text-center">
-										{instruction.instruction}
-									</Text>
 								</View>
 							))}
 						</View>
@@ -635,20 +600,20 @@ export default function RecipeDetail() {
 				</View>
 
 				{/* Action Button */}
-				<View className="px-4 pb-12">
+				<View className="px-6 pb-12">
 					<Button
 						variant="default"
 						className="w-full"
-                        onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+						onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
 					>
 						<View className="flex-row items-center gap-2">
-							<Text className="text-[#25551b] font-montserrat-bold uppercase tracking-wide">
+							<Text className="text-[#25551b] font-montserrat-bold uppercase tracking-wide text-base">
 								Add to Plan
 							</Text>
 						</View>
 					</Button>
 				</View>
 			</Animated.ScrollView>
-		</SafeAreaView>
+		</View>
 	);
 }

@@ -5,12 +5,47 @@ import { Text } from "@/components/ui/text";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useCart } from "@/context/cart-provider";
+import { useReferenceData } from "@/context/reference-data-provider";
 import * as Haptics from "expo-haptics";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 export default function Cart() {
 	const { ingredients, totalIngredients, loading, initialized } = useCart();
+	const { getTagById } = useReferenceData();
 	const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+
+	// Group ingredients by category
+	const groupedIngredients = useMemo(() => {
+		const groups = new Map<string, {
+			categoryName: string;
+			items: typeof ingredients;
+		}>();
+
+		ingredients.forEach((item) => {
+			const categoryId = item.category_id || 'uncategorized';
+			const category = item.category_id ? getTagById(item.category_id) : null;
+			const categoryName = category?.name || 'Uncategorized';
+
+			if (!groups.has(categoryId)) {
+				groups.set(categoryId, {
+					categoryName,
+					items: []
+				});
+			}
+
+			groups.get(categoryId)!.items.push(item);
+		});
+
+		// Convert to array and sort by category name
+		return Array.from(groups.entries())
+			.map(([id, data]) => ({ id, ...data }))
+			.sort((a, b) => {
+				// Put uncategorized at the end
+				if (a.id === 'uncategorized') return 1;
+				if (b.id === 'uncategorized') return -1;
+				return a.categoryName.localeCompare(b.categoryName);
+			});
+	}, [ingredients, getTagById]);
 
 	const formatQuantity = (
 		quantity: number,
@@ -159,8 +194,6 @@ export default function Cart() {
 
 	return (
 		<View className="flex-1 bg-white">
-			
-
 			<ScrollView 
 				className="flex-1 bg-background" 
 				contentContainerStyle={{ padding: 16, paddingTop: 64 }}
@@ -175,91 +208,101 @@ export default function Cart() {
 					</Text>
 				</View>
 
-				<View className="gap-2">
-					{ingredients.map((item) => {
-						const itemKey = `${item.ingredient_id}_${item.unit_id}`;
-						const isSelected = selectedItems.has(itemKey);
-						
-						return (
-							<Pressable 
-								key={itemKey}
-                                onPress={() => toggleItemSelection(itemKey)}
-								style={{
-									backgroundColor: "#FFFFFF",
-									borderWidth: 2,
-									borderColor: "#EBEBEB",
-									borderBottomWidth: 4,
-									borderBottomColor: "#EBEBEB",
-									opacity: isSelected ? 0.5 : 1,
-								}}
-								className="rounded-2xl overflow-hidden p-4"
-							>
-								<View className="flex-row items-start justify-between">
-									<View className="flex-1">
-										<Text className="text-lg font-montserrat-bold text-gray-800">
-											{item.ingredient_name}
-										</Text>
-										
-										<View
-											style={{
-												backgroundColor: "#CCEA1F",
-												borderWidth: 1,
-												borderColor: "#25551b",
-											}}
-											className="self-start px-3 py-1 rounded-lg mt-2"
-										>
-											<Text className="text-sm font-montserrat-bold text-[#25551b] uppercase tracking-wide">
-												{formatQuantity(
-													item.total_quantity,
-													item.unit_abbreviation,
-													item.unit_name
-												)}
-											</Text>
-										</View>
-									</View>
+				{groupedIngredients.map((group) => (
+					<View key={group.id} className="mb-6">
+						<View className="mb-3 px-2">
+							<Text className="text-sm font-montserrat-bold text-gray-500 uppercase tracking-wider">
+								{group.categoryName}
+							</Text>
+							<View className="h-0.5 bg-gray-200 mt-1" />
+						</View>
 
-									<View className="ml-4">
-										<View
-											style={{
-												width: 32,
-												height: 32,
-												borderWidth: 2,
-												borderColor: isSelected ? "#25551b" : "#6b7280",
-												backgroundColor: isSelected ? "#CCEA1F" : "#FFFFFF",
-											}}
-											className="rounded-lg items-center justify-center"
-										>
-                                            {isSelected && (
-                                                <Ionicons 
-                                                    name="checkmark" 
-                                                    size={16} 
-                                                    color={isSelected ? "#25551b" : "#6b7280"} 
-                                                />
-                                            )}
-										</View>
-									</View>
-								</View>
-
-                                
-								{!isSelected && item.recipes.length > 0 && (
-									<View className="mt-3 pt-3 border-t border-gray-100">
-										<Text className="text-xs font-montserrat-semibold text-gray-500 uppercase tracking-wide mb-2">
-											Used in:
-										</Text>
-										{item.recipes.map((recipe, index) => (
-											<View key={`${recipe.recipe_id}_${index}`} className="flex-row items-center gap-2 mb-1">
-												<View className="w-1 h-1 rounded-full bg-gray-400" />
-												<Text className="text-sm font-montserrat-medium text-gray-600">
-													{recipe.recipe_name} ({recipe.servings} serving{recipe.servings !== 1 ? "s" : ""})
+						<View className="gap-2">
+							{group.items.map((item) => {
+								const itemKey = `${item.ingredient_id}_${item.unit_id}`;
+								const isSelected = selectedItems.has(itemKey);
+								
+								return (
+									<Pressable 
+										key={itemKey}
+										onPress={() => toggleItemSelection(itemKey)}
+										style={{
+											backgroundColor: "#FFFFFF",
+											borderWidth: 2,
+											borderColor: "#EBEBEB",
+											borderBottomWidth: 4,
+											borderBottomColor: "#EBEBEB",
+											opacity: isSelected ? 0.5 : 1,
+										}}
+										className="rounded-2xl overflow-hidden p-4"
+									>
+										<View className="flex-row items-start justify-between">
+											<View className="flex-1">
+												<Text className="text-lg font-montserrat-bold text-gray-800">
+													{item.ingredient_name}
 												</Text>
+												
+												<View
+													style={{
+														backgroundColor: "#CCEA1F",
+														borderWidth: 1,
+														borderColor: "#25551b",
+													}}
+													className="self-start px-3 py-1 rounded-lg mt-2"
+												>
+													<Text className="text-sm font-montserrat-bold text-[#25551b] uppercase tracking-wide">
+														{formatQuantity(
+															item.total_quantity,
+															item.unit_abbreviation,
+															item.unit_name
+														)}
+													</Text>
+												</View>
 											</View>
-										))}
-									</View>
-								)}
-							</Pressable>
-						);
-					})}
-				</View>
+
+											<View className="ml-4">
+												<View
+													style={{
+														width: 32,
+														height: 32,
+														borderWidth: 2,
+														borderColor: isSelected ? "#25551b" : "#6b7280",
+														backgroundColor: isSelected ? "#CCEA1F" : "#FFFFFF",
+													}}
+													className="rounded-lg items-center justify-center"
+												>
+													{isSelected && (
+														<Ionicons 
+															name="checkmark" 
+															size={16} 
+															color="#25551b" 
+														/>
+													)}
+												</View>
+											</View>
+										</View>
+
+										{!isSelected && item.recipes.length > 0 && (
+											<View className="mt-3 pt-3 border-t border-gray-100">
+												<Text className="text-xs font-montserrat-semibold text-gray-500 uppercase tracking-wide mb-2">
+													Used in:
+												</Text>
+												{item.recipes.map((recipe, index) => (
+													<View key={`${recipe.recipe_id}_${index}`} className="flex-row items-center gap-2 mb-1">
+														<View className="w-1 h-1 rounded-full bg-gray-400" />
+														<Text className="text-sm font-montserrat-medium text-gray-600">
+															{recipe.recipe_name} ({recipe.servings} serving{recipe.servings !== 1 ? "s" : ""})
+														</Text>
+													</View>
+												))}
+											</View>
+										)}
+									</Pressable>
+								);
+							})}
+						</View>
+					</View>
+				))}
 			</ScrollView>
 
 			<View className="bg-white border-t-2 border-[#EBEBEB] p-4 pb-5">

@@ -16,6 +16,7 @@ interface CartIngredient {
 	unit_id: string | null;
 	unit_name: string | null;
 	unit_abbreviation: string | null;
+    category_id?: string | null;
 	recipes: {
 		recipe_id: string;
 		recipe_name: string;
@@ -104,6 +105,7 @@ export function CartProvider({ children }: PropsWithChildren) {
 					ingredientMap.set(key, {
 						ingredient_id: recipeIng.ingredient_id,
 						ingredient_name: ingredient.name,
+                        category_id: ingredient.category_id,
 						total_quantity: quantityNeeded,
 						unit_id: recipeIng.unit_id,
 						unit_name: unit?.name || null,
