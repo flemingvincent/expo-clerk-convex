@@ -726,18 +726,6 @@ export const MealPlanSection = () => {
 
 				{selectedWeek && displayMeals.length > 0 && !isTransitioningWeek && (
 					<View className="px-4 flex-1 gap-4 mt-2">
-						{selectedWeek.is_current_week && (
-							<Button
-                                onPress={() => router.push('/cart')}
-                                onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)}
-								variant="default"
-								accessibilityRole="button"
-								accessibilityLabel="Add ingredients to cart"
-								accessibilityHint="Add ingredients for the selected meals to your cart"
-							>
-								<Text>Checkout with grocer</Text>
-							</Button>
-						)}
                         
                         {selectedWeek.weekOffset >= 0 && (
                             <View className="flex-1">
@@ -763,6 +751,19 @@ export const MealPlanSection = () => {
 								accessibilityHint="Review the meals you have selected for this week"
 							>
 								<Text>Review Meals</Text>
+							</Button>
+						)}
+
+                        {selectedWeek.is_current_week && (
+							<Button
+                                onPress={() => router.push('/cart')}
+                                onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)}
+								variant="default"
+								accessibilityRole="button"
+								accessibilityLabel="Add ingredients to cart"
+								accessibilityHint="Add ingredients for the selected meals to your cart"
+							>
+								<Text>Checkout with grocer</Text>
 							</Button>
 						)}
 					</View>

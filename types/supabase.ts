@@ -570,6 +570,35 @@ export type Database = {
         }
         Relationships: []
       }
+      user_saved_recipes: {
+        Row: {
+          created_at: string | null
+          id: string
+          recipe_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          recipe_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          recipe_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_saved_recipes_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       weeks: {
         Row: {
           created_at: string | null

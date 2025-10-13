@@ -27,7 +27,7 @@ export default function RecipeDetail() {
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const router = useRouter();
 	const { tags, ingredients, units } = useReferenceData();
-	const { preferences } = useUserPreferences();
+	const { preferences, isSaved, toggleSaveRecipe } = useUserPreferences();
 	const [recipe, setRecipe] = useState<RecipeWithTags | null>(null);
 	const [recipeIngredients, setRecipeIngredients] = useState<
 		RecipeIngredient[]
@@ -35,7 +35,6 @@ export default function RecipeDetail() {
 	const [instructions, setInstructions] = useState<Instruction[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const [isFavorited, setIsFavorited] = useState(false);
 	const [servings, setServings] = useState(preferences?.serves_per_meal ?? 2);
 	const [tab, setTab] = useState<"ingredients" | "instructions">("ingredients");
 
@@ -142,10 +141,18 @@ export default function RecipeDetail() {
 		router.back();
 	};
 
-	const handleFavoritePress = () => {
-		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-		setIsFavorited(!isFavorited);
+	const handleFavoritePress = async () => {
+		if (!id) return;
+		
+		try {
+			await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+			await toggleSaveRecipe(id);
+		} catch (error) {
+			console.error("Error toggling saved recipe:", error);
+		}
 	};
+
+    const isRecipeSaved = id ? isSaved(id) : false;
 
 	const getIngredientName = (ingredientId: string) => {
 		const ingredient = ingredients.find((ing) => ing.id === ingredientId);
@@ -268,17 +275,17 @@ export default function RecipeDetail() {
 						</Text>
 
 						<Pressable
-							onPress={handleFavoritePress}
-							onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-							hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-							className="p-2"
-						>
-							<Ionicons
-								name={isFavorited ? "heart" : "heart-outline"}
-								size={24}
-								color={isFavorited ? "#dc2626" : "#1f2937"}
-							/>
-						</Pressable>
+                            onPress={handleFavoritePress}
+                            onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            className="p-2"
+                        >
+                            <Ionicons
+                                name={isRecipeSaved ? "heart" : "heart-outline"}
+                                size={24}
+                                color={isRecipeSaved ? "#dc2626" : "#1f2937"}
+                            />
+                        </Pressable>
 					</View>
 				</SafeAreaView>
 			</Animated.View>
@@ -305,26 +312,26 @@ export default function RecipeDetail() {
 					</Pressable>
 
 					<Pressable
-						onPress={handleFavoritePress}
-						onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-						hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-						style={{
-							backgroundColor: "white",
-							borderRadius: 12,
-							padding: 8,
-							shadowColor: "#000",
-							shadowOffset: { width: 0, height: 2 },
-							shadowOpacity: 0.1,
-							shadowRadius: 4,
-							elevation: 3,
-						}}
-					>
-						<Ionicons
-							name={isFavorited ? "heart" : "heart-outline"}
-							size={24}
-							color={isFavorited ? "#dc2626" : "#1f2937"}
-						/>
-					</Pressable>
+                        onPress={handleFavoritePress}
+                        onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        style={{
+                            backgroundColor: "white",
+                            borderRadius: 12,
+                            padding: 8,
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.1,
+                            shadowRadius: 4,
+                            elevation: 3,
+                        }}
+                    >
+                        <Ionicons
+                            name={isRecipeSaved ? "heart" : "heart-outline"}
+                            size={24}
+                            color={isRecipeSaved ? "#dc2626" : "#1f2937"}
+                        />
+                    </Pressable>
 				</View>
 			</SafeAreaView>
 
@@ -519,8 +526,8 @@ export default function RecipeDetail() {
 											className="w-12 h-12 rounded-xl items-center justify-center mr-4 p-2"
 											style={{ 
 												backgroundColor: "#FFFFFF",
-												borderWidth: 2,
-												borderColor: "#5C5C5C",
+												borderWidth: 1,
+												borderColor: "#e5e7eb",
 											}}
 										>
 											{ingredientImageUrl ? (

@@ -26,6 +26,11 @@ interface UserPreferencesState {
 	hasGoals: boolean;
 	hasPreferenceTags: boolean;
 	getPreferenceTagIds: () => string[];
+
+    savedRecipeIds: string[];
+	isSaved: (recipeId: string) => boolean;
+	toggleSaveRecipe: (recipeId: string) => Promise<void>;
+	refreshSavedRecipes: () => Promise<void>;
 }
 
 const UserPreferencesContext = createContext<UserPreferencesState>({
@@ -39,6 +44,10 @@ const UserPreferencesContext = createContext<UserPreferencesState>({
 	hasGoals: false,
 	hasPreferenceTags: false,
 	getPreferenceTagIds: () => [],
+    savedRecipeIds: [],
+	isSaved: () => false,
+	toggleSaveRecipe: async () => {},
+	refreshSavedRecipes: async () => {},
 });
 
 export const useUserPreferences = () => {
@@ -57,6 +66,7 @@ export function UserPreferencesProvider({ children }: PropsWithChildren) {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<Error | null>(null);
 	const [initialized, setInitialized] = useState(false);
+    const [savedRecipeIds, setSavedRecipeIds] = useState<string[]>([]);
 
 	const { session } = useAuth();
 	const userId = session?.user?.id;
@@ -67,6 +77,7 @@ export function UserPreferencesProvider({ children }: PropsWithChildren) {
 				console.log("No user ID, skipping preferences fetch");
 			}
 			setPreferences(null);
+            setSavedRecipeIds([]);
 			setInitialized(true);
 			return;
 		}
@@ -80,11 +91,25 @@ export function UserPreferencesProvider({ children }: PropsWithChildren) {
 			}
 
 			// Fetch user preferences
-			const { data: prefData, error: prefError } = await supabase
-				.from("user_preferences")
-				.select("*")
-				.eq("user_id", userId)
-				.single();
+			const [prefResult, savedResult] = await Promise.all([
+				supabase
+					.from("user_preferences")
+					.select("*")
+					.eq("user_id", userId)
+					.single(),
+				supabase
+					.from("user_saved_recipes")
+					.select("recipe_id")
+					.eq("user_id", userId),
+			]);
+
+            if (savedResult.error) {
+				console.error("Error fetching saved recipes:", savedResult.error);
+			} else {
+				setSavedRecipeIds(savedResult.data?.map((item) => item.recipe_id) || []);
+			}
+
+            const { data: prefData, error: prefError } = prefResult;
 
 			if (prefError) {
 				if (prefError.code === "PGRST116") {
@@ -157,6 +182,88 @@ export function UserPreferencesProvider({ children }: PropsWithChildren) {
 			setLoading(false);
 		}
 	}, [userId]);
+
+    const fetchSavedRecipes = useCallback(async () => {
+		if (!userId) {
+			setSavedRecipeIds([]);
+			return;
+		}
+
+		try {
+			const { data, error } = await supabase
+				.from("user_saved_recipes")
+				.select("recipe_id")
+				.eq("user_id", userId);
+
+			if (error) throw error;
+
+			setSavedRecipeIds(data?.map((item) => item.recipe_id) || []);
+
+			if (__DEV__) {
+				console.log(`📌 Loaded ${data?.length || 0} saved recipes`);
+			}
+		} catch (err) {
+			console.error("Error fetching saved recipes:", err);
+		}
+	}, [userId]);
+
+    const isSaved = useCallback(
+		(recipeId: string) => {
+			return savedRecipeIds.includes(recipeId);
+		},
+		[savedRecipeIds]
+	);
+
+    const toggleSaveRecipe = useCallback(
+		async (recipeId: string) => {
+			if (!userId) {
+				console.error("Cannot save recipe: no user ID");
+				return;
+			}
+
+			try {
+				const isCurrentlySaved = isSaved(recipeId);
+
+				if (isCurrentlySaved) {
+					// Unsave
+					const { error } = await supabase
+						.from("user_saved_recipes")
+						.delete()
+						.eq("user_id", userId)
+						.eq("recipe_id", recipeId);
+
+					if (error) throw error;
+
+					setSavedRecipeIds((prev) => prev.filter((id) => id !== recipeId));
+
+					if (__DEV__) {
+						console.log("❌ Unsaved recipe:", recipeId);
+					}
+				} else {
+					// Save
+					const { error } = await supabase
+						.from("user_saved_recipes")
+						.insert({
+							user_id: userId,
+							recipe_id: recipeId,
+						});
+
+					if (error) throw error;
+
+					setSavedRecipeIds((prev) => [...prev, recipeId]);
+
+					if (__DEV__) {
+						console.log("✅ Saved recipe:", recipeId);
+					}
+				}
+			} catch (err) {
+				console.error("Error toggling saved recipe:", err);
+				throw err;
+			}
+		},
+		[userId, isSaved]
+	);
+
 
 	const updatePreferences = useCallback(
 		async (updates: Partial<UserPreferencesWithTags>) => {
@@ -257,7 +364,7 @@ export function UserPreferencesProvider({ children }: PropsWithChildren) {
 		}
 	}, [userId, initialized, fetchPreferences, preferences]);
 
-	const contextValue = useMemo(
+    const contextValue = useMemo(
 		() => ({
 			preferences,
 			loading,
@@ -269,6 +376,10 @@ export function UserPreferencesProvider({ children }: PropsWithChildren) {
 			hasGoals,
 			hasPreferenceTags,
 			getPreferenceTagIds,
+			savedRecipeIds,
+			isSaved,
+			toggleSaveRecipe,
+			refreshSavedRecipes: fetchSavedRecipes,
 		}),
 		[
 			preferences,
@@ -281,7 +392,11 @@ export function UserPreferencesProvider({ children }: PropsWithChildren) {
 			hasGoals,
 			hasPreferenceTags,
 			getPreferenceTagIds,
-		],
+			savedRecipeIds,
+			isSaved,
+			toggleSaveRecipe,
+			fetchSavedRecipes,
+		]
 	);
 
 	return (
