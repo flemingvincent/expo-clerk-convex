@@ -10,30 +10,46 @@ import * as Haptics from "expo-haptics";
 import { useState, useMemo } from "react";
 
 export default function Cart() {
+	const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 	const { ingredients, totalIngredients, loading, initialized } = useCart();
 	const { getTagById, ingredients: referenceIngredients } = useReferenceData();
 	const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
+	const toggleRecipes = (itemKey: string) => {
+		setExpandedItems((prev) => {
+			const newSet = new Set(prev);
+			if (newSet.has(itemKey)) {
+				newSet.delete(itemKey);
+			} else {
+				newSet.add(itemKey);
+			}
+			return newSet;
+		});
+	};
+
 	const groupedIngredients = useMemo(() => {
-		const groups = new Map<string, {
-			categoryName: string;
-			items: typeof ingredients;
-		}>();
+		const groups = new Map<
+			string,
+			{
+				categoryName: string;
+				items: typeof ingredients;
+			}
+		>();
 
 		ingredients.forEach((item) => {
 			// Filter out water
-			if (item.ingredient_name.toLowerCase() === 'water') {
+			if (item.ingredient_name.toLowerCase() === "water") {
 				return;
 			}
 
-			const categoryId = item.category_id || 'uncategorized';
+			const categoryId = item.category_id || "uncategorized";
 			const category = item.category_id ? getTagById(item.category_id) : null;
-			const categoryName = category?.name || 'Uncategorized';
+			const categoryName = category?.name || "Uncategorized";
 
 			if (!groups.has(categoryId)) {
 				groups.set(categoryId, {
 					categoryName,
-					items: []
+					items: [],
 				});
 			}
 
@@ -45,24 +61,26 @@ export default function Cart() {
 			.map(([id, data]) => ({ id, ...data }))
 			.sort((a, b) => {
 				// Put uncategorized at the end
-				if (a.id === 'uncategorized') return 1;
-				if (b.id === 'uncategorized') return -1;
+				if (a.id === "uncategorized") return 1;
+				if (b.id === "uncategorized") return -1;
 				return a.categoryName.localeCompare(b.categoryName);
 			});
 	}, [ingredients, getTagById]);
 
 	const getIngredientImageUrl = (ingredientId: string) => {
-		const ingredient = referenceIngredients.find((ing) => ing.id === ingredientId);
+		const ingredient = referenceIngredients.find(
+			(ing) => ing.id === ingredientId,
+		);
 		return ingredient?.image_url || null;
 	};
 
 	const formatQuantity = (
 		quantity: number,
 		abbreviation: string | null,
-		unitName: string | null
+		unitName: string | null,
 	) => {
 		if (quantity === 0) return "As needed";
-		
+
 		// Format number to avoid long decimals
 		const formattedQty =
 			quantity % 1 === 0 ? quantity.toString() : quantity.toFixed(2);
@@ -77,7 +95,7 @@ export default function Cart() {
 
 	const toggleItemSelection = (itemKey: string) => {
 		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-		setSelectedItems(prev => {
+		setSelectedItems((prev) => {
 			const newSet = new Set(prev);
 			if (newSet.has(itemKey)) {
 				newSet.delete(itemKey);
@@ -95,7 +113,9 @@ export default function Cart() {
 					<View className="flex-row items-center justify-between px-4 py-3">
 						<Pressable
 							onPress={handleBack}
-							onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)}
+							onPressIn={() =>
+								Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)
+							}
 							className="p-2"
 						>
 							<Ionicons name="arrow-back" size={24} color="#1f2937" />
@@ -137,7 +157,9 @@ export default function Cart() {
 					<View className="flex-row items-center justify-between px-4 py-3">
 						<Pressable
 							onPress={handleBack}
-							onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)}
+							onPressIn={() =>
+								Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)
+							}
 							className="p-2"
 						>
 							<Ionicons name="arrow-back" size={24} color="#1f2937" />
@@ -176,7 +198,9 @@ export default function Cart() {
 					<Button
 						variant="default"
 						onPress={handleBack}
-						onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)}
+						onPressIn={() =>
+							Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)
+						}
 						className="w-full max-w-xs"
 					>
 						<Text className="text-[#25551b] font-montserrat-bold uppercase tracking-wide">
@@ -191,11 +215,16 @@ export default function Cart() {
 	return (
 		<View className="flex-1 bg-white">
 			{/* Header */}
-			<SafeAreaView edges={["top"]} className="bg-white border-b-2 border-b-[#EBEBEB]">
+			<SafeAreaView
+				edges={["top"]}
+				className="bg-white border-b-2 border-b-[#EBEBEB]"
+			>
 				<View className="flex-row items-center justify-between px-4 py-3">
 					<Pressable
 						onPress={handleBack}
-						onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)}
+						onPressIn={() =>
+							Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)
+						}
 						hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
 						className="p-2"
 					>
@@ -210,8 +239,8 @@ export default function Cart() {
 				</View>
 			</SafeAreaView>
 
-			<ScrollView 
-				className="flex-1 bg-white" 
+			<ScrollView
+				className="flex-1 bg-white"
 				contentContainerStyle={{ paddingBottom: 100 }}
 				showsVerticalScrollIndicator={false}
 			>
@@ -241,20 +270,22 @@ export default function Cart() {
 							{group.items.map((item) => {
 								const itemKey = `${item.ingredient_id}_${item.unit_id}`;
 								const isSelected = selectedItems.has(itemKey);
-								const ingredientImageUrl = getIngredientImageUrl(item.ingredient_id);
-								const [showRecipes, setShowRecipes] = useState(false);
-								
+								const ingredientImageUrl = getIngredientImageUrl(
+									item.ingredient_id,
+								);
+								const showRecipes = expandedItems.has(itemKey);
+
 								return (
 									<View key={itemKey} className="border-b border-gray-200">
-										<Pressable 
+										<Pressable
 											onPress={() => toggleItemSelection(itemKey)}
 											className="flex-row items-center py-4"
 											style={{ opacity: isSelected ? 0.4 : 1 }}
 										>
 											{/* Ingredient Image */}
-											<View 
+											<View
 												className="w-12 h-12 rounded-xl items-center justify-center mr-4 p-2"
-												style={{ 
+												style={{
 													backgroundColor: "#FFFFFF",
 													borderWidth: 2,
 													borderColor: "#E5E7EB",
@@ -267,15 +298,23 @@ export default function Cart() {
 														resizeMode="contain"
 													/>
 												) : (
-													<Ionicons name="nutrition-outline" size={20} color="#9CA3AF" />
+													<Ionicons
+														name="nutrition-outline"
+														size={20}
+														color="#9CA3AF"
+													/>
 												)}
 											</View>
 
 											{/* Ingredient Info */}
 											<View className="flex-1">
-												<Text 
+												<Text
 													className="text-lg font-montserrat-bold text-gray-800 mb-1"
-													style={{ textDecorationLine: isSelected ? 'line-through' : 'none' }}
+													style={{
+														textDecorationLine: isSelected
+															? "line-through"
+															: "none",
+													}}
 												>
 													{item.ingredient_name}
 												</Text>
@@ -283,7 +322,7 @@ export default function Cart() {
 													{formatQuantity(
 														item.total_quantity,
 														item.unit_abbreviation,
-														item.unit_name
+														item.unit_name,
 													)}
 												</Text>
 											</View>
@@ -300,39 +339,41 @@ export default function Cart() {
 												className="rounded-lg items-center justify-center ml-3"
 											>
 												{isSelected && (
-													<Ionicons 
-														name="checkmark" 
-														size={18} 
-														color="#25551b" 
+													<Ionicons
+														name="checkmark"
+														size={18}
+														color="#25551b"
 													/>
 												)}
 											</View>
 										</Pressable>
 
-										{/* Recipe Details */}
 										{!isSelected && item.recipes.length > 0 && (
 											<View className="pb-3 px-4">
 												<Pressable
 													onPress={() => {
-														Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-														setShowRecipes(!showRecipes);
+														Haptics.impactAsync(
+															Haptics.ImpactFeedbackStyle.Light,
+														);
+														toggleRecipes(itemKey); // ✅ Use the toggleRecipes function you already created
 													}}
 													className="flex-row items-center gap-1.5"
 												>
-													<Ionicons 
-														name={showRecipes ? "chevron-up" : "chevron-down"} 
-														size={14} 
-														color="#9CA3AF" 
+													<Ionicons
+														name={showRecipes ? "chevron-up" : "chevron-down"}
+														size={14}
+														color="#9CA3AF"
 													/>
 													<Text className="text-xs font-montserrat-semibold text-gray-400 uppercase tracking-wide">
-														{item.recipes.length} recipe{item.recipes.length !== 1 ? 's' : ''}
+														{item.recipes.length} recipe
+														{item.recipes.length !== 1 ? "s" : ""}
 													</Text>
 												</Pressable>
 
 												{showRecipes && (
 													<View className="mt-2 ml-5 gap-1">
 														{item.recipes.map((recipe, index) => (
-															<View 
+															<View
 																key={`${recipe.recipe_id}_${index}`}
 																className="flex-row items-center justify-between py-1"
 															>
@@ -343,7 +384,7 @@ export default function Cart() {
 																	{formatQuantity(
 																		recipe.quantity,
 																		item.unit_abbreviation,
-																		item.unit_name
+																		item.unit_name,
 																	)}
 																</Text>
 															</View>
@@ -361,9 +402,9 @@ export default function Cart() {
 			</ScrollView>
 
 			{/* Fixed Bottom Button */}
-			<View 
+			<View
 				className="absolute bottom-0 left-0 right-0 bg-white border-t-2 border-[#EBEBEB] px-6 pt-4 pb-6"
-				style={{ 
+				style={{
 					shadowColor: "#000",
 					shadowOffset: { width: 0, height: -2 },
 					shadowOpacity: 0.1,
