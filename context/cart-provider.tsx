@@ -65,44 +65,72 @@ export function CartProvider({ children }: PropsWithChildren) {
 		return mealPlanInitialized && recipesInitialized && referenceInitialized;
 	}, [mealPlanInitialized, recipesInitialized, referenceInitialized]);
 
+    const convertToBaseUnit = useCallback(
+		(quantity: number, fromUnitId: string | null, baseUnitId: string | null): number => {
+			// If no units specified, return as-is
+			if (!fromUnitId || !baseUnitId) return quantity;
+
+			// If already in base unit, return as-is
+			if (fromUnitId === baseUnitId) return quantity;
+
+			const fromUnit = getUnitById(fromUnitId);
+			
+			// If no conversion factor or it's null, return as-is
+			if (!fromUnit || fromUnit.to_base === null) {
+				console.warn(`No conversion factor for unit: ${fromUnitId}`);
+				return quantity;
+			}
+
+			// Convert to base unit using the to_base multiplier
+			return quantity * fromUnit.to_base;
+		},
+		[getUnitById]
+	);
+
 	const ingredients = useMemo(() => {
 		const ingredientMap = new Map<string, CartIngredient>();
 
-		// Only process if initialized, but don't return early
 		if (initialized) {
-			console.log("hi", currentMealPlan);
+			console.log("Processing meal plan for cart", currentMealPlan);
 
-			// Process each meal in the plan
 			currentMealPlan.forEach((meal) => {
 				const recipeIngredients = getRecipeIngredients(meal.recipe.id);
 
 				recipeIngredients.forEach((recipeIng) => {
-					// Get ingredient and unit details from reference data
 					const ingredient = getIngredientById(recipeIng.ingredient_id);
-					const unit = recipeIng.unit_id
-						? getUnitById(recipeIng.unit_id)
-						: null;
-
+					
 					if (!ingredient) {
 						console.warn(`Ingredient not found: ${recipeIng.ingredient_id}`);
 						return;
 					}
 
-					// Calculate the quantity needed based on servings
-					const quantityNeeded = recipeIng.quantity_per_serving
+					// Get the base unit for this ingredient (from ingredients table)
+					const baseUnitId = ingredient.unit_id;
+					const baseUnit = baseUnitId ? getUnitById(baseUnitId) : null;
+
+					// Calculate quantity in recipe unit
+					const quantityInRecipeUnit = recipeIng.quantity_per_serving
 						? recipeIng.quantity_per_serving * meal.servings
 						: 0;
 
-					// Create a unique key for ingredient + unit combination
-					const key = `${recipeIng.ingredient_id}_${recipeIng.unit_id || "no_unit"}`;
+					// Convert to base unit
+					const quantityInBaseUnit = convertToBaseUnit(
+						quantityInRecipeUnit,
+						recipeIng.unit_id,
+						baseUnitId
+					);
+
+					// Create key using ingredient_id and BASE unit (not recipe unit)
+					// This ensures all quantities for the same ingredient are grouped together
+					const key = `${recipeIng.ingredient_id}_${baseUnitId || "no_unit"}`;
 
 					if (ingredientMap.has(key)) {
 						const existing = ingredientMap.get(key)!;
-						existing.total_quantity += quantityNeeded;
+						existing.total_quantity += quantityInBaseUnit;
 						existing.recipes.push({
 							recipe_id: meal.recipe.id,
 							recipe_name: meal.recipe.name,
-							quantity: quantityNeeded,
+							quantity: quantityInBaseUnit,
 							servings: meal.servings,
 						});
 					} else {
@@ -110,15 +138,15 @@ export function CartProvider({ children }: PropsWithChildren) {
 							ingredient_id: recipeIng.ingredient_id,
 							ingredient_name: ingredient.name,
 							category_id: ingredient.category_id,
-							total_quantity: quantityNeeded,
-							unit_id: recipeIng.unit_id,
-							unit_name: unit?.name || null,
-							unit_abbreviation: unit?.abbreviation || null,
+							total_quantity: quantityInBaseUnit,
+							unit_id: baseUnitId, // Use base unit, not recipe unit
+							unit_name: baseUnit?.name || null,
+							unit_abbreviation: baseUnit?.abbreviation || null,
 							recipes: [
 								{
 									recipe_id: meal.recipe.id,
 									recipe_name: meal.recipe.name,
-									quantity: quantityNeeded,
+									quantity: quantityInBaseUnit,
 									servings: meal.servings,
 								},
 							],
@@ -136,6 +164,7 @@ export function CartProvider({ children }: PropsWithChildren) {
 		getRecipeIngredients,
 		getIngredientById,
 		getUnitById,
+		convertToBaseUnit,
 		initialized,
 	]);
 

@@ -570,6 +570,41 @@ export type Database = {
         }
         Relationships: []
       }
+      user_recipe_ratings: {
+        Row: {
+          created_at: string | null
+          id: string
+          rating: boolean
+          recipe_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          rating: boolean
+          recipe_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          rating?: boolean
+          recipe_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_recipe_ratings_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_saved_recipes: {
         Row: {
           created_at: string | null
@@ -640,7 +675,24 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      recipe_rating_stats: {
+        Row: {
+          approval_percentage: number | null
+          recipe_id: string | null
+          thumbs_down_count: number | null
+          thumbs_up_count: number | null
+          total_ratings: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_recipe_ratings_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       auto_generate_future_weeks: {
@@ -910,6 +962,17 @@ export type Database = {
       update_user_goals: {
         Args: { p_goals: string[]; p_user_id: string }
         Returns: boolean
+      }
+      upsert_recipe_rating: {
+        Args: { p_rating: boolean; p_recipe_id: string }
+        Returns: {
+          created_at: string | null
+          id: string
+          rating: boolean
+          recipe_id: string
+          updated_at: string | null
+          user_id: string
+        }
       }
       weekly_maintenance: {
         Args: Record<PropertyKey, never>

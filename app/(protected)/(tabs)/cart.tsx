@@ -81,10 +81,40 @@ export default function Cart() {
 	) => {
 		if (quantity === 0) return "As needed";
 
-		// Format number to avoid long decimals
-		const formattedQty =
-			quantity % 1 === 0 ? quantity.toString() : quantity.toFixed(2);
+		let formattedQty: string;
 		const unit = abbreviation || unitName || "units";
+
+		// Handle large quantities - convert g to kg, ml to L
+		if (
+			(unit === "g" || unit === "gram" || unit === "grams") &&
+			quantity >= 1000
+		) {
+			formattedQty = (quantity / 1000).toFixed(2).replace(/\.?0+$/, "");
+			return `${formattedQty} kg`;
+		}
+
+		if (
+			(unit === "ml" || unit === "milliliter" || unit === "milliliters") &&
+			quantity >= 1000
+		) {
+			formattedQty = (quantity / 1000).toFixed(2).replace(/\.?0+$/, "");
+			return `${formattedQty} L`;
+		}
+
+		// Format based on magnitude
+		if (quantity >= 100) {
+			formattedQty = Math.round(quantity).toString();
+		} else if (quantity >= 10) {
+			formattedQty = quantity.toFixed(1);
+		} else if (quantity >= 1) {
+			formattedQty = quantity.toFixed(2);
+		} else {
+			formattedQty = quantity.toFixed(2);
+		}
+
+		// Remove trailing zeros
+		formattedQty = formattedQty.replace(/\.?0+$/, "");
+
 		return `${formattedQty} ${unit}`;
 	};
 
