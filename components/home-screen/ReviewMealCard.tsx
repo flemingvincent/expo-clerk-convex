@@ -107,9 +107,12 @@ export const ReviewMealCard = ({
 		}
 	};
 
-	const handleSaveToggle = async () => {
+	const handleSaveToggle = async (e: any) => {
+		// Stop propagation to prevent triggering the card press
+		e?.stopPropagation?.();
+		
 		try {
-			await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+			await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 			await toggleSaveRecipe(recipe.recipe.id);
 		} catch (error) {
 			console.error("Error toggling saved recipe:", error);
@@ -129,7 +132,7 @@ export const ReviewMealCard = ({
 		>
 			{/* Recipe Image */}
 			<Pressable onPress={handlePress}>
-				<View className="p-2">
+				<View className="p-2 relative">
 					<View
 						className="aspect-[4/3] w-full overflow-hidden rounded-xl"
 						style={{
@@ -150,6 +153,32 @@ export const ReviewMealCard = ({
 							contentFit="cover"
 						/>
 					</View>
+
+					{/* Floating Save Button */}
+					<Pressable
+						onPress={handleSaveToggle}
+						onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+						hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+						style={{
+							position: "absolute",
+							top: 12,
+							right: 12,
+							backgroundColor: isRecipeSaved ? "#fef2f2" : "rgba(255, 255, 255, 0.9)",
+							borderRadius: 12,
+							padding: 8,
+							shadowColor: "#000",
+							shadowOffset: { width: 0, height: 2 },
+							shadowOpacity: 0.1,
+							shadowRadius: 4,
+							elevation: 3,
+						}}
+					>
+						<Ionicons
+							name={isRecipeSaved ? "heart" : "heart-outline"}
+							size={24}
+							color={isRecipeSaved ? "#dc2626" : "#9ca3af"}
+						/>
+					</Pressable>
 				</View>
 
 				<View className="px-4 pt-2 pb-4">
@@ -172,7 +201,7 @@ export const ReviewMealCard = ({
 			</Pressable>
 
 			{/* Rating Buttons */}
-			<View className="px-4 pb-4 gap-3">
+			<View className="px-4 pb-4">
 				<View className="flex-row gap-3">
 					<Pressable
 						onPress={handleThumbsDown}
@@ -224,33 +253,6 @@ export const ReviewMealCard = ({
 						</Text>
 					</Pressable>
 				</View>
-
-				{/* Save to Favourites Button */}
-				<Pressable
-					onPress={handleSaveToggle}
-					className="flex-row items-center justify-center gap-2 rounded-xl py-4"
-					style={{
-						backgroundColor: isRecipeSaved ? '#CCEA1F' : '#FFFFFF',
-						borderWidth: 2,
-						borderColor: isRecipeSaved ? '#25551b' : '#EBEBEB',
-						borderBottomWidth: isRecipeSaved ? 2 : 4,
-						borderBottomColor: isRecipeSaved ? '#25551b' : '#EBEBEB',
-					}}
-				>
-					<Ionicons
-						name={isRecipeSaved ? "heart" : "heart-outline"}
-						size={20}
-						color={isRecipeSaved ? '#25551b' : '#6b7280'}
-					/>
-					<Text
-						className="font-montserrat-bold uppercase tracking-wide text-base"
-						style={{
-							color: isRecipeSaved ? '#25551b' : '#6b7280',
-						}}
-					>
-						{isRecipeSaved ? 'Saved to Favourites' : 'Save to Favourites'}
-					</Text>
-				</Pressable>
 			</View>
 		</View>
 	);
