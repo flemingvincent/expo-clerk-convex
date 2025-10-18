@@ -6,7 +6,7 @@ import { Text } from "@/components/ui/text";
 import { Image } from "@/components/image";
 import * as Haptics from "expo-haptics";
 import { MealPlanItem } from "@/types/database";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Svg, { Path } from "react-native-svg";
 import { useUserPreferences } from "@/context/user-preferences-provider";
 
@@ -45,10 +45,20 @@ export const ReviewMealCard = ({
 	recipe,
 	onPress,
 }: ReviewMealCardProps) => {
-	const [rating, setRating] = useState<'up' | 'down' | null>(null);
-	const { isSaved, toggleSaveRecipe } = useUserPreferences();
+	const { isSaved, toggleSaveRecipe, getRating, setRating, removeRating } = useUserPreferences();
 	
 	const isRecipeSaved = isSaved(recipe.recipe.id);
+	const existingRating = getRating(recipe.recipe.id);
+	
+	// Initialize local state from existing rating
+	const [rating, setLocalRating] = useState<'up' | 'down' | null>(
+		existingRating === null ? null : existingRating ? 'up' : 'down'
+	);
+
+	// Update local state if existing rating changes
+	useEffect(() => {
+		setLocalRating(existingRating === null ? null : existingRating ? 'up' : 'down');
+	}, [existingRating]);
 
 	const handlePress = () => {
 		if (onPress) {
@@ -57,16 +67,44 @@ export const ReviewMealCard = ({
 		}
 	};
 
-	const handleThumbsUp = () => {
+	const handleThumbsUp = async () => {
 		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-		setRating(rating === 'up' ? null : 'up');
-		// TODO: Save rating to database
+		
+		try {
+			if (rating === 'up') {
+				// Remove rating if already thumbs up
+				setLocalRating(null);
+				await removeRating(recipe.recipe.id);
+			} else {
+				// Set thumbs up
+				setLocalRating('up');
+				await setRating(recipe.recipe.id, true);
+			}
+		} catch (error) {
+			console.error("Error updating rating:", error);
+			// Revert local state on error
+			setLocalRating(existingRating === null ? null : existingRating ? 'up' : 'down');
+		}
 	};
 
-	const handleThumbsDown = () => {
+	const handleThumbsDown = async () => {
 		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-		setRating(rating === 'down' ? null : 'down');
-		// TODO: Save rating to database
+		
+		try {
+			if (rating === 'down') {
+				// Remove rating if already thumbs down
+				setLocalRating(null);
+				await removeRating(recipe.recipe.id);
+			} else {
+				// Set thumbs down
+				setLocalRating('down');
+				await setRating(recipe.recipe.id, false);
+			}
+		} catch (error) {
+			console.error("Error updating rating:", error);
+			// Revert local state on error
+			setLocalRating(existingRating === null ? null : existingRating ? 'up' : 'down');
+		}
 	};
 
 	const handleSaveToggle = async () => {
