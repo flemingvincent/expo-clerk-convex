@@ -11,6 +11,7 @@ import { useWeeks } from "@/context/week-data-provider";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "@/context/supabase-provider";
 import React from "react";
+import { ReviewMealCard } from "./ReviewMealCard";
 
 export const MealPlanSection = () => {
 	const router = useRouter();
@@ -292,7 +293,7 @@ export const MealPlanSection = () => {
 									borderRadius: 2,
 								}}
 							/>
-							{renderStep("Review", "star-outline", stepStates.review)}
+							{renderStep("Review", "thumbs-up-outline", stepStates.review)}
 						</View>
 					) : (
 						<View className="flex-1 flex-row justify-between items-center">
@@ -320,7 +321,7 @@ export const MealPlanSection = () => {
 									borderRadius: 2,
 								}}
 							/>
-							{renderStep("Review", "star-outline", stepStates.review)}
+							{renderStep("Review", "thumbs-up-outline", stepStates.review)}
 						</View>
 					)}
 				</View>
@@ -649,12 +650,20 @@ export const MealPlanSection = () => {
 				) : displayMeals.length > 0 ? (
                     <View className="px-4 gap-2">
                         {displayMeals.map((meal: MealPlanItem, index: number) => (
-                            <MealCard
-                                key={meal.id}
-                                recipe={meal}
-                                isCollapsed={true}
-                                onPress={() => handleMealPress(meal)}
-                            />
+                            selectedWeek?.weekOffset === -1 ? (
+                                <ReviewMealCard
+                                    key={meal.id}
+                                    recipe={meal}
+                                    onPress={() => handleMealPress(meal)}
+                                />
+                            ) : (
+                                <MealCard
+                                    key={meal.id}
+                                    recipe={meal}
+                                    isCollapsed={true}
+                                    onPress={() => handleMealPress(meal)}
+                                />
+                            )
                         ))}
                     </View>
 				) : (
@@ -741,17 +750,6 @@ export const MealPlanSection = () => {
                                     <Text className="uppercase">Change meals</Text>
                                 </Button>
                             </View>
-						)}
-
-						{selectedWeek.weekOffset === -1 && (
-							<Button
-								variant="outline"
-								accessibilityRole="button"
-								accessibilityLabel="Review Meals"
-								accessibilityHint="Review the meals you have selected for this week"
-							>
-								<Text>Review Meals</Text>
-							</Button>
 						)}
 
                         {selectedWeek.is_current_week && (

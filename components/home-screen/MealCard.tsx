@@ -10,7 +10,7 @@ import * as Haptics from "expo-haptics";
 import { MealPlanItem } from "@/types/database";
 import { useReferenceData } from "@/context/reference-data-provider";
 import { Button } from "../ui/button";
-
+    
 interface MealCardProps {
 	recipe: MealPlanItem;
 	onPress?: () => void;

@@ -265,7 +265,7 @@ export default function MealPlannerScreen() {
 									justifyContent: "center",
 								}}
 							>
-								<Ionicons name="star-outline" size={14} color="#9CA3AF" />
+								<Ionicons name="thumbs-up-outline" size={14} color="#9CA3AF" />
 							</View>
 							<Text
 								className="text-xs mt-1 font-montserrat-semibold uppercase"
