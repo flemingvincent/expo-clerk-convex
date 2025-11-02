@@ -2,7 +2,7 @@ import { ReactNode, useMemo, useEffect } from "react";
 import { AppState } from "react-native";
 
 import { createClient, processLock } from "@supabase/supabase-js";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import "expo-sqlite/localStorage/install";
 
 import { SupabaseContext } from "@/context/supabase-context";
 
@@ -18,7 +18,7 @@ export const SupabaseProvider = ({ children }: SupabaseProviderProps) => {
     () =>
       createClient(supabaseUrl, supabaseKey, {
         auth: {
-          storage: AsyncStorage,
+          storage: localStorage,
           autoRefreshToken: true,
           persistSession: true,
           detectSessionInUrl: false,
