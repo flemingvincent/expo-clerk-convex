@@ -23,6 +23,9 @@ import { useUserPreferences } from "@/context/user-preferences-provider";
 
 const { width: screenWidth } = Dimensions.get("window");
 
+const INITIAL_INGREDIENTS_COUNT = 3;
+const INITIAL_INSTRUCTIONS_COUNT = 2;
+
 export default function RecipeDetail() {
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const router = useRouter();
@@ -37,6 +40,8 @@ export default function RecipeDetail() {
 	const [error, setError] = useState<string | null>(null);
 	const [servings, setServings] = useState(preferences?.serves_per_meal ?? 2);
 	const [tab, setTab] = useState<"ingredients" | "instructions">("ingredients");
+	const [showAllIngredients, setShowAllIngredients] = useState(false);
+	const [showAllInstructions, setShowAllInstructions] = useState(false);
 
 	const scrollY = useRef(new Animated.Value(0)).current;
 	const headerOpacity = scrollY.interpolate({
@@ -61,6 +66,19 @@ export default function RecipeDetail() {
 	const handleTabChange = (toTab: "ingredients" | "instructions") => {
 		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 		setTab(toTab);
+		// Reset show all state when switching tabs
+		setShowAllIngredients(false);
+		setShowAllInstructions(false);
+	};
+
+	const toggleShowAllIngredients = () => {
+		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+		setShowAllIngredients(!showAllIngredients);
+	};
+
+	const toggleShowAllInstructions = () => {
+		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+		setShowAllInstructions(!showAllInstructions);
 	};
 
 	useEffect(() => {
@@ -181,6 +199,20 @@ export default function RecipeDetail() {
 		const unitDisplay = unitInfo.abbreviation || unitInfo.name;
 		return `${formattedQuantity} ${unitDisplay}`;
 	};
+
+	// Get the ingredients to display based on show all state
+	const displayedIngredients = showAllIngredients 
+		? recipeIngredients 
+		: recipeIngredients.slice(0, INITIAL_INGREDIENTS_COUNT);
+	
+	const hasMoreIngredients = recipeIngredients.length > INITIAL_INGREDIENTS_COUNT;
+
+	// Get the instructions to display based on show all state
+	const displayedInstructions = showAllInstructions
+		? instructions
+		: instructions.slice(0, INITIAL_INSTRUCTIONS_COUNT);
+	
+	const hasMoreInstructions = instructions.length > INITIAL_INSTRUCTIONS_COUNT;
 
 	if (loading) {
 		return (
@@ -497,11 +529,11 @@ export default function RecipeDetail() {
 				</View>
 
 				{/* Content */}
-				<View className="px-6 pb-6">
+				<View className="px-6 pb-32">
 					{/* Ingredients */}
 					{tab === "ingredients" && recipeIngredients.length > 0 && (
 						<View>
-							{recipeIngredients.map((recipeIngredient, index) => {
+							{displayedIngredients.map((recipeIngredient, index) => {
 								const ingredientName = getIngredientName(
 									recipeIngredient.ingredient_id,
 								);
@@ -553,13 +585,34 @@ export default function RecipeDetail() {
 									</View>
 								);
 							})}
+
+							{/* Show More/Less Button for Ingredients */}
+							{hasMoreIngredients && (
+								<Pressable
+									onPress={toggleShowAllIngredients}
+									className="mt-4 py-3 items-center"
+								>
+									<View className="flex-row items-center gap-2">
+										<Text className="text-base font-montserrat-bold text-gray-600">
+											{showAllIngredients 
+												? "Show Less" 
+												: `Show ${recipeIngredients.length - INITIAL_INGREDIENTS_COUNT} More`}
+										</Text>
+										<Ionicons 
+											name={showAllIngredients ? "chevron-up" : "chevron-down"} 
+											size={20} 
+											color="#4b5563" 
+										/>
+									</View>
+								</Pressable>
+							)}
 						</View>
 					)}
 
 					{/* Instructions */}
 					{tab === "instructions" && instructions.length > 0 && (
 						<View>
-							{instructions.map((instruction, index) => (
+							{displayedInstructions.map((instruction, index) => (
 								<View
 									key={index}
 									className="py-6 border-b border-gray-200"
@@ -602,12 +655,49 @@ export default function RecipeDetail() {
 									</View>
 								</View>
 							))}
+
+							{/* Show More/Less Button for Instructions */}
+							{hasMoreInstructions && (
+								<Pressable
+									onPress={toggleShowAllInstructions}
+									className="mt-4 py-3 items-center"
+								>
+									<View className="flex-row items-center gap-2">
+										<Text className="text-base font-montserrat-bold text-gray-600">
+											{showAllInstructions 
+												? "Show Less" 
+												: `Show ${instructions.length - INITIAL_INSTRUCTIONS_COUNT} More Steps`}
+										</Text>
+										<Ionicons 
+											name={showAllInstructions ? "chevron-up" : "chevron-down"} 
+											size={20} 
+											color="#4b5563" 
+										/>
+									</View>
+								</Pressable>
+							)}
 						</View>
 					)}
 				</View>
 
-				{/* Action Button */}
-				<View className="px-6 pb-12">
+			</Animated.ScrollView>
+
+			{/* Floating Action Button */}
+			<View style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 9 }}>
+				<View 
+					className="px-6 py-4"
+					style={{
+						backgroundColor: "white",
+						borderTopWidth: 1,
+						borderTopColor: "#e5e7eb",
+						shadowColor: "#000",
+						shadowOffset: { width: 0, height: -2 },
+						shadowOpacity: 0.1,
+						shadowRadius: 8,
+						elevation: 8,
+                        paddingBottom: 24,
+					}}
+				>
 					<Button
 						variant="default"
 						className="w-full"
@@ -620,7 +710,7 @@ export default function RecipeDetail() {
 						</View>
 					</Button>
 				</View>
-			</Animated.ScrollView>
+			</View>
 		</View>
 	);
 }
