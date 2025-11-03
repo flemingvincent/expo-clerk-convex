@@ -10,6 +10,8 @@ import { useWeeks } from "@/context/week-data-provider";
 import { MealPlanItem, RecipeWithTags } from "@/types/database";
 import { MealCard } from "@/components/home-screen/MealCard";
 import * as Haptics from "expo-haptics";
+import { MealExplorer } from "@/components/meal-explorer/meal-explorer";
+import { useUserPreferences } from "@/context/user-preferences-provider";
 
 export default function MealPlannerScreen() {
 	const router = useRouter();
@@ -25,6 +27,9 @@ export default function MealPlannerScreen() {
 		getAvailableRecipes,
 	} = useMealPlan();
 
+    const {
+        preferences
+    } = useUserPreferences();
 
 	const { getWeekById } = useWeeks();
 
@@ -36,7 +41,6 @@ export default function MealPlannerScreen() {
 	const [originalMealPlan, setOriginalMealPlan] = useState<MealPlanItem[]>([]);
 	const [selectedMeals, setSelectedMeals] = useState<MealPlanItem[]>([]);
 	const [hasChanges, setHasChanges] = useState(false);
-	const [isCollapsed, setIsCollapsed] = useState(false);
 
 	useEffect(() => {
 		if (weekId) {
@@ -74,18 +78,22 @@ export default function MealPlannerScreen() {
 	};
 
     const handleSaveChanges = async () => {
-		if (!weekId) return;
+        if (!weekId) return;
 
-		try {
-			await saveMealPlanForWeek(weekId as string, selectedMeals);
-			console.log("Saved changes for week:", weekId);
-			setHasChanges(false);
-			setOriginalMealPlan([...selectedMeals]);
-			router.back();
-		} catch (error) {
-			console.error("Error saving meal plan:", error);
-		}
-	};
+        try {
+            await saveMealPlanForWeek(weekId as string, selectedMeals);
+            console.log("Saved changes for week:", weekId);
+            
+            // Reload the meal plan to sync local state with database
+            await loadMealPlanForWeek(weekId as string);
+            
+            setHasChanges(false);
+            setOriginalMealPlan([...selectedMeals]);
+            router.back();
+        } catch (error) {
+            console.error("Error saving meal plan:", error);
+        }
+    };
 
     const handleRemoveMeal = (mealId: string) => {
 		setSelectedMeals((prev) => prev.filter((meal) => meal.id !== mealId));
@@ -98,9 +106,9 @@ export default function MealPlannerScreen() {
 		}
 
 		const newMeal: MealPlanItem = {
-			id: `meal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+			id: `meal_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
 			recipe,
-			servings: 1,
+			servings: preferences?.serves_per_meal ?? 1,
 		};
 
 		setSelectedMeals((prev) => [...prev, newMeal]);
@@ -284,21 +292,6 @@ export default function MealPlannerScreen() {
 						<Text className="text-lg font-montserrat-bold text-gray-900">
 							Your Selected Meals ({selectedMeals.length})
 						</Text>
-
-						<Pressable
-							onPress={() => setIsCollapsed(!isCollapsed)}
-                            onPressIn={() => {Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)}}
-							className="flex-row items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100"
-						>
-							<Ionicons
-								name={isCollapsed ? "albums-outline" : "list-outline"}
-								size={18}
-								color="#6B7280"
-							/>
-							<Text className="text-sm font-montserrat-semibold text-gray-600">
-								{isCollapsed ? "Card View" : "List View"}
-							</Text>
-						</Pressable>
 					</View>
 
 					{selectedMeals.length > 0 ? (
@@ -309,9 +302,8 @@ export default function MealPlannerScreen() {
 									recipe={meal}
 									editable={true}
 									isInPlan={true}
-                                    isCollapsed={isCollapsed}
+                                    isCollapsed={true}
 									onRemove={handleRemoveMeal}
-									onServingsChange={handleServingsChange}
 									onPress={() => router.push(`/recipe/${meal.recipe.id}`)}
 								/>
 							))}
@@ -331,33 +323,11 @@ export default function MealPlannerScreen() {
 
 				<View className="h-px bg-gray-200 mx-4 my-6" />
 
-				<View className="px-4 pb-6">
-					<Text className="text-lg font-montserrat-bold text-gray-900 mb-3">
-						Explore Recipes
-					</Text>
-
-					<ScrollView horizontal showsHorizontalScrollIndicator={false}>
-						{availableRecipes.filter((recipe) => !selectedMeals.some((meal) => meal.recipe.id === recipe.id)).map((recipe) => {
-							const tempMeal: MealPlanItem = {
-								id: recipe.id,
-								recipe: recipe,
-								servings: 1,
-							};
-
-							return (
-								<MealCard
-									key={recipe.id}
-									recipe={tempMeal}
-									editable={true}
-									isInPlan={false}
-									onAdd={() => handleAddMeal(recipe)}
-									width={350}
-									onPress={() => router.push(`/recipe/${recipe.id}`)}
-								/>
-							);
-						})}
-					</ScrollView>
-				</View>
+				<MealExplorer 
+                    availableRecipes={availableRecipes}
+                    selectedMeals={selectedMeals}
+                    onAddMeal={handleAddMeal}
+                />
 			</ScrollView>
 
 			<View className="bg-white border-t border-gray-200 px-4 py-3">

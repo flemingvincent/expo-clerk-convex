@@ -1,4 +1,4 @@
-// Updated MealCard component with add/remove functionality:
+// Updated MealCard component with remove button in collapsed view:
 
 import { View, Pressable, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -153,40 +153,18 @@ export const MealCard = ({
 								</View>
 							</View>
 
-							{/* Servings controls on the right - vertical layout */}
-							{editable && isInPlan && (
-								<View className="flex-col items-center justify-center ml-3">
-									<Pressable
-										onPress={handleServingsIncrease}
-										className="w-7 h-7 items-center justify-center bg-gray-100 rounded-lg"
-										style={({ pressed }) => ({
-											transform: [{ translateY: pressed ? 1 : 0 }],
-										})}
-									>
-										<Ionicons name="chevron-up" size={14} color="#4b5563" />
-									</Pressable>
-
-									<Text className="text-md font-montserrat-bold text-gray-700 my-1">
-										{recipe.servings}
-									</Text>
-
-									<Pressable
-										onPress={handleServingsDecrease}
-										disabled={recipe.servings <= 1}
-										className="w-7 h-7 items-center justify-center bg-gray-100 rounded-lg"
-										style={({ pressed }) => ({
-											transform: [
-												{ translateY: pressed && recipe.servings > 1 ? 1 : 0 },
-											],
-										})}
-									>
-										<Ionicons
-											name="chevron-down"
-											size={14}
-											color={recipe.servings <= 1 ? "#B0B0B0" : "#4b5563"}
-										/>
-									</Pressable>
-								</View>
+							{/* Remove button for collapsed view */}
+							{editable && isInPlan && onRemove && (
+								<Pressable
+									onPress={handleRemove}
+									style={{
+										borderWidth: 2,
+										borderBottomWidth: 3,
+									}}
+									className="bg-red-100 border-red-400 border-b-red-600 text-red-600 w-10 h-10 rounded-lg items-center justify-center mr-2"
+								>
+									<Ionicons name="close" size={18} color="#dc2626" />
+								</Pressable>
 							)}
 						</View>
 					) : (

@@ -103,7 +103,7 @@ export function MealPlanProvider({ children }: PropsWithChildren) {
 
 	// Generate a unique ID for meal plan items
 	const generateMealId = () =>
-		`meal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+		`meal_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
 	// Add a meal to the plan
 	const addMealToPlan = useCallback(
