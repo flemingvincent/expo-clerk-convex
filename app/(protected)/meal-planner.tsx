@@ -190,6 +190,7 @@ export default function MealPlannerScreen() {
 					</Pressable>
 				</View>
 
+{/*                 
 				<View className="flex-row justify-center items-center px-12 pb-3">
 					<View className="flex-1 flex-row justify-between items-center">
 						<View className="items-center">
@@ -283,7 +284,7 @@ export default function MealPlannerScreen() {
 							</Text>
 						</View>
 					</View>
-				</View>
+				</View> */}
 			</View>
 
 			<ScrollView className="flex-1" showsVerticalScrollIndicator={false}>

@@ -682,8 +682,13 @@ export default function RecipeDetail() {
 
 			</Animated.ScrollView>
 
-			{/* Floating Action Button */}
-			<View style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 9 }}>
+			{/* Floating Action Buttons */}
+
+                    {/* TODO: integrate with meal plans
+                        If the meal is in the selected weeks meal plan, show "Remove from Plan" button etc.
+                    */}
+
+			{/* <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 9 }}>
 				<View 
 					className="px-6 py-4"
 					style={{
@@ -710,7 +715,7 @@ export default function RecipeDetail() {
 						</View>
 					</Button>
 				</View>
-			</View>
+			</View> */}
 		</View>
 	);
 }

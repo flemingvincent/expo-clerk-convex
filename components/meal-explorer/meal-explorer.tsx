@@ -70,9 +70,11 @@ export function MealExplorer({
 	}, [selectedGroup]);
 
 	const handleGroupSelect = (groupId: string) => {
-		setSelectedGroup(groupId);
-		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
-	};
+        setSelectedGroup(groupId);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+        // Immediately scroll to start
+        recipeScrollViewRef.current?.scrollTo({ x: 0, animated: false });
+    };
 
 	return (
 		<View className="pb-6">
@@ -119,7 +121,8 @@ export function MealExplorer({
 
 			{/* Recipe Slider */}
 			{groupRecipes.length > 0 ? (
-				<ScrollView 
+				<ScrollView
+                    key={`scroll-${selectedGroup}`}
 					ref={recipeScrollViewRef}
 					horizontal 
 					showsHorizontalScrollIndicator={false}
