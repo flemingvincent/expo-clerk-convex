@@ -1,10 +1,13 @@
 import { useEffect } from "react";
 
 import { Stack } from "expo-router";
+import { useConvexAuth } from "convex/react";
 import * as SplashScreen from "expo-splash-screen";
+import { ClerkProvider, useAuth } from "@clerk/expo";
+import { tokenCache } from "@clerk/expo/token-cache";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
 
-import { useSupabase } from "@/hooks/useSupabase";
-import { SupabaseProvider } from "@/providers/supabase-provider";
+import { convex } from "@/lib/convex";
 
 SplashScreen.setOptions({
   duration: 500,
@@ -13,22 +16,21 @@ SplashScreen.setOptions({
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
-  return (
-    <SupabaseProvider>
-      <RootNavigator />
-    </SupabaseProvider>
-  );
+const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+if (!publishableKey) {
+  throw new Error("Add EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY to your .env file");
 }
 
-function RootNavigator() {
-  const { isLoaded, session } = useSupabase();
+const RootNavigator = () => {
+  const { isLoaded: isClerkLoaded, isSignedIn } = useAuth();
+  const { isLoading: isConvexLoaded } = useConvexAuth();
 
   useEffect(() => {
-    if (isLoaded) {
+    if (isClerkLoaded && !isConvexLoaded) {
       SplashScreen.hide();
     }
-  }, [isLoaded]);
+  }, [isClerkLoaded, isConvexLoaded]);
 
   return (
     <Stack
@@ -39,13 +41,23 @@ function RootNavigator() {
         animationDuration: 0,
       }}
     >
-      <Stack.Protected guard={!!session}>
+      <Stack.Protected guard={isSignedIn ?? false}>
         <Stack.Screen name="(protected)" />
       </Stack.Protected>
 
-      <Stack.Protected guard={!session}>
+      <Stack.Protected guard={!isSignedIn}>
         <Stack.Screen name="(public)" />
       </Stack.Protected>
     </Stack>
+  );
+};
+
+export default function RootLayout() {
+  return (
+    <ClerkProvider publishableKey={publishableKey!} tokenCache={tokenCache}>
+      <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+        <RootNavigator />
+      </ConvexProviderWithClerk>
+    </ClerkProvider>
   );
 }

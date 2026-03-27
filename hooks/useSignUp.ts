@@ -1,7 +1,9 @@
-import { useSupabase } from "./useSupabase";
+import { router } from "expo-router";
+import { useAuth, useSignUp as useClerkSignUp } from "@clerk/expo";
 
 export const useSignUp = () => {
-  const { isLoaded, supabase } = useSupabase();
+  const { isLoaded } = useAuth();
+  const { signUp: clerkSignUp } = useClerkSignUp();
 
   const signUp = async ({
     email,
@@ -10,26 +12,51 @@ export const useSignUp = () => {
     email: string;
     password: string;
   }) => {
-    const { error } = await supabase.auth.signUp({
-      email,
+    if (!isLoaded) {
+      throw new Error("Sign up is not ready yet");
+    }
+
+    const { error } = await clerkSignUp.password({
+      emailAddress: email,
       password,
     });
-    if (error) throw error;
+
+    if (error) {
+      throw error;
+    }
+
+    const { error: sendCodeError } =
+      await clerkSignUp.verifications.sendEmailCode();
+    if (sendCodeError) {
+      throw sendCodeError;
+    }
   };
 
-  const verifyOtp = async ({
-    email,
-    token,
-  }: {
-    email: string;
-    token: string;
-  }) => {
-    const { error } = await supabase.auth.verifyOtp({
-      email,
-      token,
-      type: "email",
+  const verifyOtp = async ({ token }: { token: string }) => {
+    if (!isLoaded) {
+      throw new Error("Verification is not ready yet");
+    }
+
+    const { error } = await clerkSignUp.verifications.verifyEmailCode({
+      code: token,
     });
-    if (error) throw error;
+
+    if (error) {
+      throw error;
+    }
+
+    if (clerkSignUp.status === "complete") {
+      await clerkSignUp.finalize({
+        navigate: async ({ session }) => {
+          if (session.currentTask) {
+            console.log("Unhandled session task:", session.currentTask);
+            return;
+          }
+
+          router.replace("/");
+        },
+      });
+    }
   };
 
   return {
