@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { Text, TextInput, Button, View, ScrollView } from "react-native";
+import {
+  Text,
+  TextInput,
+  Button,
+  View,
+  ScrollView,
+  Pressable,
+  StyleSheet,
+} from "react-native";
 
 import { router } from "expo-router";
 
@@ -29,16 +37,23 @@ export default function Page() {
       automaticallyAdjustsScrollIndicatorInsets
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={{ padding: 16, gap: 8 }}
+      keyboardShouldPersistTaps="handled"
     >
       <Text>Email Address:</Text>
       <TextInput
         autoCapitalize="none"
+        autoComplete="email"
+        autoCorrect={false}
+        keyboardType="email-address"
+        textContentType="emailAddress"
         value={email}
         placeholder="Enter email"
         onChangeText={(email) => setEmail(email)}
       />
       <Text>Password:</Text>
       <TextInput
+        autoComplete="password"
+        textContentType="password"
         value={password}
         placeholder="Enter password"
         secureTextEntry={true}
@@ -47,18 +62,25 @@ export default function Page() {
       <Button
         title="Continue"
         onPress={onSignInPress}
-        disabled={!email || !password}
+        disabled={!isLoaded || !email || !password}
       />
-      <View
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          justifyContent: "center",
-        }}
-      >
-        <Text>Don&apos;t have an account? </Text>
-        <Text onPress={() => router.replace("/sign-up")}>Sign up</Text>
+      <View style={styles.footer}>
+        <Text>{"Don't have an account? "}</Text>
+        <Pressable
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={() => router.replace("/sign-up")}
+        >
+          <Text>Sign up</Text>
+        </Pressable>
       </View>
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  footer: {
+    flexDirection: "row",
+    justifyContent: "center",
+  },
+});

@@ -1,9 +1,9 @@
 import { router } from "expo-router";
-import { useAuth, useSignUp as useClerkSignUp } from "@clerk/expo";
+import { useSignUp as useClerkSignUp } from "@clerk/expo";
 
 export const useSignUp = () => {
-  const { isLoaded } = useAuth();
-  const { signUp: clerkSignUp } = useClerkSignUp();
+  const { fetchStatus, signUp: clerkSignUp } = useClerkSignUp();
+  const isLoaded = fetchStatus === "idle";
 
   const signUp = async ({
     email,
@@ -46,7 +46,7 @@ export const useSignUp = () => {
     }
 
     if (clerkSignUp.status === "complete") {
-      await clerkSignUp.finalize({
+      const { error: finalizeError } = await clerkSignUp.finalize({
         navigate: async ({ session }) => {
           if (session.currentTask) {
             console.log("Unhandled session task:", session.currentTask);
@@ -56,6 +56,10 @@ export const useSignUp = () => {
           router.replace("/");
         },
       });
+
+      if (finalizeError) {
+        throw finalizeError;
+      }
     }
   };
 

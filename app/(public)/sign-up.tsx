@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { Text, TextInput, Button, View, ScrollView } from "react-native";
+import {
+  Text,
+  TextInput,
+  Button,
+  View,
+  ScrollView,
+  Pressable,
+  StyleSheet,
+} from "react-native";
 
 import { router } from "expo-router";
 
@@ -39,59 +47,76 @@ export default function Page() {
     }
   };
 
-  if (pendingVerification) {
-    return (
-      <ScrollView
-        automaticallyAdjustsScrollIndicatorInsets
-        contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={{ padding: 16, gap: 8 }}
-      >
-        <Text>Verification Code:</Text>
-        <TextInput
-          value={token}
-          placeholder="Enter your verification code"
-          onChangeText={(token) => setToken(token)}
-        />
-        <Button title="Verify" onPress={onVerifyPress} disabled={!token} />
-      </ScrollView>
-    );
-  }
-
   return (
     <ScrollView
       automaticallyAdjustsScrollIndicatorInsets
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={{ padding: 16, gap: 8 }}
+      keyboardShouldPersistTaps="handled"
     >
-      <Text>Email Address:</Text>
-      <TextInput
-        autoCapitalize="none"
-        value={email}
-        placeholder="Enter email"
-        onChangeText={(email) => setEmail(email)}
-      />
-      <Text>Password:</Text>
-      <TextInput
-        value={password}
-        placeholder="Enter password"
-        secureTextEntry={true}
-        onChangeText={(password) => setPassword(password)}
-      />
-      <Button
-        title="Continue"
-        onPress={onSignUpPress}
-        disabled={!email || !password}
-      />
-      <View
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          justifyContent: "center",
-        }}
-      >
-        <Text>Already have an account? </Text>
-        <Text onPress={() => router.replace("/sign-in")}>Sign in</Text>
-      </View>
+      {pendingVerification ? (
+        <>
+          <Text>Verification Code:</Text>
+          <TextInput
+            autoComplete="one-time-code"
+            keyboardType="number-pad"
+            textContentType="oneTimeCode"
+            value={token}
+            placeholder="Enter your verification code"
+            onChangeText={(token) => setToken(token)}
+          />
+          <Button
+            title="Verify"
+            onPress={onVerifyPress}
+            disabled={!isLoaded || !token}
+          />
+        </>
+      ) : (
+        <>
+          <Text>Email Address:</Text>
+          <TextInput
+            autoCapitalize="none"
+            autoComplete="email"
+            autoCorrect={false}
+            keyboardType="email-address"
+            textContentType="emailAddress"
+            value={email}
+            placeholder="Enter email"
+            onChangeText={(email) => setEmail(email)}
+          />
+          <Text>Password:</Text>
+          <TextInput
+            autoComplete="new-password"
+            textContentType="newPassword"
+            value={password}
+            placeholder="Enter password"
+            secureTextEntry={true}
+            onChangeText={(password) => setPassword(password)}
+          />
+          <Button
+            title="Continue"
+            onPress={onSignUpPress}
+            disabled={!isLoaded || !email || !password}
+          />
+          <View style={styles.footer}>
+            <Text>Already have an account? </Text>
+            <Pressable
+              accessibilityRole="button"
+              hitSlop={8}
+              onPress={() => router.replace("/sign-in")}
+            >
+              <Text>Sign in</Text>
+            </Pressable>
+          </View>
+        </>
+      )}
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  footer: {
+    flexDirection: "row",
+    justifyContent: "center",
+  },
+});

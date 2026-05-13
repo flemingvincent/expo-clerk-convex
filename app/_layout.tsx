@@ -25,6 +25,8 @@ if (!publishableKey) {
 const RootNavigator = () => {
   const { isLoaded: isClerkLoaded, isSignedIn } = useAuth();
   const { isLoading: isConvexLoaded } = useConvexAuth();
+  const isAuthenticated = isClerkLoaded && isSignedIn === true;
+  const isUnauthenticated = isClerkLoaded && isSignedIn === false;
 
   useEffect(() => {
     if (isClerkLoaded && !isConvexLoaded) {
@@ -41,11 +43,11 @@ const RootNavigator = () => {
         animationDuration: 0,
       }}
     >
-      <Stack.Protected guard={isSignedIn ?? false}>
+      <Stack.Protected guard={isAuthenticated}>
         <Stack.Screen name="(protected)" />
       </Stack.Protected>
 
-      <Stack.Protected guard={!isSignedIn}>
+      <Stack.Protected guard={isUnauthenticated}>
         <Stack.Screen name="(public)" />
       </Stack.Protected>
     </Stack>
