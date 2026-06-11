@@ -1,17 +1,11 @@
-import { router } from "expo-router";
 import { useSignUp as useClerkSignUp } from "@clerk/expo";
+import { router } from "expo-router";
 
 export const useSignUp = () => {
   const { fetchStatus, signUp: clerkSignUp } = useClerkSignUp();
   const isLoaded = fetchStatus === "idle";
 
-  const signUp = async ({
-    email,
-    password,
-  }: {
-    email: string;
-    password: string;
-  }) => {
+  const signUp = async ({ email, password }: { email: string; password: string }) => {
     if (!isLoaded) {
       throw new Error("Sign up is not ready yet");
     }
@@ -25,8 +19,7 @@ export const useSignUp = () => {
       throw error;
     }
 
-    const { error: sendCodeError } =
-      await clerkSignUp.verifications.sendEmailCode();
+    const { error: sendCodeError } = await clerkSignUp.verifications.sendEmailCode();
     if (sendCodeError) {
       throw sendCodeError;
     }

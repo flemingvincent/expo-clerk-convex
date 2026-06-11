@@ -1,17 +1,11 @@
-import { router } from "expo-router";
 import { useSignIn as useClerkSignIn } from "@clerk/expo";
+import { router } from "expo-router";
 
 export const useSignIn = () => {
   const { fetchStatus, signIn } = useClerkSignIn();
   const isLoaded = fetchStatus === "idle";
 
-  const signInWithPassword = async ({
-    email,
-    password,
-  }: {
-    email: string;
-    password: string;
-  }) => {
+  const signInWithPassword = async ({ email, password }: { email: string; password: string }) => {
     if (!isLoaded) {
       throw new Error("Sign in is not ready yet");
     }

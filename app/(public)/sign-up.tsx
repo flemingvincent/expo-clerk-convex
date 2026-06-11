@@ -1,15 +1,6 @@
-import { useState } from "react";
-import {
-  Text,
-  TextInput,
-  Button,
-  View,
-  ScrollView,
-  Pressable,
-  StyleSheet,
-} from "react-native";
-
 import { router } from "expo-router";
+import { useState } from "react";
+import { Text, TextInput, Button, View, ScrollView, Pressable, StyleSheet } from "react-native";
 
 import { useSignUp } from "@/hooks/useSignUp";
 
@@ -22,7 +13,9 @@ export default function Page() {
   const [token, setToken] = useState("");
 
   const onSignUpPress = async () => {
-    if (!isLoaded) return;
+    if (!isLoaded) {
+      return;
+    }
 
     try {
       await signUp({
@@ -36,7 +29,9 @@ export default function Page() {
   };
 
   const onVerifyPress = async () => {
-    if (!isLoaded) return;
+    if (!isLoaded) {
+      return;
+    }
 
     try {
       await verifyOtp({
@@ -63,13 +58,11 @@ export default function Page() {
             textContentType="oneTimeCode"
             value={token}
             placeholder="Enter your verification code"
-            onChangeText={(token) => setToken(token)}
+            onChangeText={(token) => {
+              setToken(token);
+            }}
           />
-          <Button
-            title="Verify"
-            onPress={onVerifyPress}
-            disabled={!isLoaded || !token}
-          />
+          <Button title="Verify" onPress={onVerifyPress} disabled={!isLoaded || !token} />
         </>
       ) : (
         <>
@@ -82,7 +75,9 @@ export default function Page() {
             textContentType="emailAddress"
             value={email}
             placeholder="Enter email"
-            onChangeText={(email) => setEmail(email)}
+            onChangeText={(email) => {
+              setEmail(email);
+            }}
           />
           <Text>Password:</Text>
           <TextInput
@@ -90,8 +85,10 @@ export default function Page() {
             textContentType="newPassword"
             value={password}
             placeholder="Enter password"
-            secureTextEntry={true}
-            onChangeText={(password) => setPassword(password)}
+            secureTextEntry
+            onChangeText={(password) => {
+              setPassword(password);
+            }}
           />
           <Button
             title="Continue"
@@ -103,7 +100,9 @@ export default function Page() {
             <Pressable
               accessibilityRole="button"
               hitSlop={8}
-              onPress={() => router.replace("/sign-in")}
+              onPress={() => {
+                router.replace("/sign-in");
+              }}
             >
               <Text>Sign in</Text>
             </Pressable>

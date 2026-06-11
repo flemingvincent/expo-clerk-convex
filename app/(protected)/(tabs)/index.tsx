@@ -1,6 +1,5 @@
-import { Button, View } from "react-native";
-
 import { useClerk } from "@clerk/expo";
+import { Button, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function Page() {

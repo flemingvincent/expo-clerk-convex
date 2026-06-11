@@ -7,10 +7,7 @@
     "icon": "./assets/icon.png",
     "scheme": "expo-clerk-convex",
     "userInterfaceStyle": "automatic",
-    "platforms": [
-      "ios",
-      "android"
-    ],
+    "platforms": ["ios", "android"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.flemingvincent.expo-clerk-convex"

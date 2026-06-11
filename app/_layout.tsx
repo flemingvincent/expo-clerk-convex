@@ -1,11 +1,10 @@
-import { useEffect } from "react";
-
-import { Stack } from "expo-router";
-import { useConvexAuth } from "convex/react";
-import * as SplashScreen from "expo-splash-screen";
 import { ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
+import { useConvexAuth } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
+import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect } from "react";
 
 import { convex } from "@/lib/convex";
 
@@ -14,7 +13,7 @@ SplashScreen.setOptions({
   fade: true,
 });
 
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 

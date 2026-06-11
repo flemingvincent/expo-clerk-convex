@@ -1,6 +1,5 @@
-import { Button, View } from "react-native";
-
 import { router } from "expo-router";
+import { Button, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function Page() {
@@ -17,8 +16,18 @@ export default function Page() {
         paddingBottom: insets.bottom,
       }}
     >
-      <Button title="Sign Up" onPress={() => router.push("/sign-up")} />
-      <Button title="Sign In" onPress={() => router.push("/sign-in")} />
+      <Button
+        title="Sign Up"
+        onPress={() => {
+          router.push("/sign-up");
+        }}
+      />
+      <Button
+        title="Sign In"
+        onPress={() => {
+          router.push("/sign-in");
+        }}
+      />
     </View>
   );
 }

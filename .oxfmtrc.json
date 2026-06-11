@@ -1,0 +1,12 @@
+{
+  "ignorePatterns": ["convex/_generated/**"],
+  "sortImports": {
+    "groups": [
+      ["builtin", "external"],
+      ["internal", "subpath"],
+      ["parent", "sibling", "index"],
+      "unknown"
+    ],
+    "ignoreCase": false
+  }
+}

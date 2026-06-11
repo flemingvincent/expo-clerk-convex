@@ -1,15 +1,6 @@
-import { useState } from "react";
-import {
-  Text,
-  TextInput,
-  Button,
-  View,
-  ScrollView,
-  Pressable,
-  StyleSheet,
-} from "react-native";
-
 import { router } from "expo-router";
+import { useState } from "react";
+import { Text, TextInput, Button, View, ScrollView, Pressable, StyleSheet } from "react-native";
 
 import { useSignIn } from "@/hooks/useSignIn";
 
@@ -20,7 +11,9 @@ export default function Page() {
   const [password, setPassword] = useState("");
 
   const onSignInPress = async () => {
-    if (!isLoaded) return;
+    if (!isLoaded) {
+      return;
+    }
 
     try {
       await signInWithPassword({
@@ -48,7 +41,9 @@ export default function Page() {
         textContentType="emailAddress"
         value={email}
         placeholder="Enter email"
-        onChangeText={(email) => setEmail(email)}
+        onChangeText={(email) => {
+          setEmail(email);
+        }}
       />
       <Text>Password:</Text>
       <TextInput
@@ -56,8 +51,10 @@ export default function Page() {
         textContentType="password"
         value={password}
         placeholder="Enter password"
-        secureTextEntry={true}
-        onChangeText={(password) => setPassword(password)}
+        secureTextEntry
+        onChangeText={(password) => {
+          setPassword(password);
+        }}
       />
       <Button
         title="Continue"
@@ -69,7 +66,9 @@ export default function Page() {
         <Pressable
           accessibilityRole="button"
           hitSlop={8}
-          onPress={() => router.replace("/sign-up")}
+          onPress={() => {
+            router.replace("/sign-up");
+          }}
         >
           <Text>Sign up</Text>
         </Pressable>
